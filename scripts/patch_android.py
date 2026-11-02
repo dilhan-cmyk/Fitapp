@@ -118,13 +118,14 @@ wr(p, s)
 step('icons')
 try:
     from PIL import Image, ImageDraw
+    SRC = Image.open('assets/icon-source.png').convert('RGBA')
     def draw(size, transparent):
+        # transparent=True -> adaptive foreground (photo inside the safe zone)
+        # transparent=False -> legacy launcher icon (photo on dark background)
         im = Image.new('RGBA', (size, size), (0, 0, 0, 0) if transparent else (15, 22, 33, 255))
-        d = ImageDraw.Draw(im)
-        m = size * (0.30 if transparent else 0.18)
-        d.ellipse([m, m, size - m, size - m], outline=(52, 211, 153, 255), width=max(2, int(size * (0.06 if transparent else 0.09))))
-        c, r = size / 2, size * (0.08 if transparent else 0.12)
-        d.ellipse([c - r, c - r, c + r, c + r], fill=(52, 211, 153, 255))
+        s = int(size * (0.72 if transparent else 1.0))
+        p = SRC.resize((s, s), Image.LANCZOS)
+        im.alpha_composite(p, ((size - s) // 2, (size - s) // 2 + (int(size * 0.04) if transparent else 0)))
         return im
     legacy = {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}
     fg = {'mdpi': 108, 'hdpi': 162, 'xhdpi': 216, 'xxhdpi': 324, 'xxxhdpi': 432}
