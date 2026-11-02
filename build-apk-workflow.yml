@@ -45,6 +45,15 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
+      - name: Inspect APK
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          echo "== signature =="; $BT/apksigner verify --verbose --print-certs $APK || true
+          echo "== badging =="; $BT/aapt2 dump badging $APK | grep -E "^(package|sdkVersion|targetSdk|native-code|uses-permission|application-label)" || true
+          echo "== manifest =="; $BT/aapt2 dump xmltree --file AndroidManifest.xml $APK | head -120 || true
+          echo "== zip =="; unzip -l $APK | grep -E "lib/|classes" || true
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
