@@ -84,3 +84,17 @@ jobs:
         with:
           name: Fuel-lite-APK
           path: android/app/build/outputs/apk/debug/app-lite.apk
+
+      - name: Build test APK (lite, standard debug key)
+        working-directory: android
+        run: |
+          keytool -genkeypair -keystore $HOME/test.keystore -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          sed -i 's#storeFile file("$rootDir/fuel.keystore")#storeFile file("'$HOME'/test.keystore")#; s#storePassword "fuelfuel"#storePassword "android"#; s#keyAlias "fuel"#keyAlias "androiddebugkey"#; s#keyPassword "fuelfuel"#keyPassword "android"#; s#com.dilhan.fuellite#com.dilhan.fueltest#' app/build.gradle
+          ./gradlew assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/app-test.apk
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fuel-test-APK
+          path: android/app/build/outputs/apk/debug/app-test.apk
