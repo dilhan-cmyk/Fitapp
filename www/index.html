@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f1621">
+<meta name="theme-color" content="#13283d">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Fuel</title>
 <style>
-:root{--bg:#0f1621;--card:#182131;--line:#26324a;--tx:#e8edf5;--mu:#8b98ae;--ac:#34d399;--p:#4f9cf9;--c:#f5b942;--f:#ef6f6c}
+:root{--bg:#13283d;--card:#1b3550;--line:#2f4d6c;--tx:#f4ead9;--mu:#a3b9cc;--ac:#a9c08a;--p:#6db3e0;--c:#e8c887;--f:#e0948a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 #app{max-width:520px;margin:0 auto;padding:14px 14px calc(84px + env(safe-area-inset-bottom))}
@@ -21,42 +21,49 @@ h3{margin:0 0 10px}
 .row:first-of-type{border-top:0}
 .sh2{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .sp{flex:1}
-button{font:inherit;color:var(--tx);background:#243049;border:0;border-radius:10px;padding:10px 14px}
-button.pri{background:var(--ac);color:#05241a;font-weight:700}
-button.dng{background:#5b2430}
+button{font:inherit;color:var(--tx);background:#2a4968;border:0;border-radius:10px;padding:10px 14px}
+button.pri{background:var(--ac);color:#13283d;font-weight:700}
+button.dng{background:#7b3b3b}
 button.sm{padding:6px 10px;font-size:13px}
-button.add{width:36px;height:36px;padding:0;font-size:22px;background:var(--ac);color:#05241a;border-radius:50%}
-button.on,.chip.on{background:var(--ac);color:#05241a}
+button.add{width:36px;height:36px;padding:0;font-size:22px;background:var(--ac);color:#13283d;border-radius:50%}
+button.on,.chip.on{background:var(--ac);color:#13283d}
 .chip{padding:7px 12px;border-radius:99px;font-size:13px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-input,select{font:inherit;color:var(--tx);background:#0f1621;border:1px solid var(--line);border-radius:10px;padding:10px;width:100%}
+input,select{font:inherit;color:var(--tx);background:#13283d;border:1px solid var(--line);border-radius:10px;padding:10px;width:100%}
 label{display:block;font-size:12px;color:var(--mu);margin:8px 0 3px}
 .bar{display:flex;gap:8px;align-items:center}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-nav{position:fixed;bottom:0;left:0;right:0;background:#0b111a;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0e2033;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:5}
 nav button{flex:1;background:none;border-radius:0;padding:10px 0 8px;font-size:11px;color:var(--mu)}
 nav button.on{background:none;color:var(--ac)}
 nav b{display:block;font-size:20px;font-weight:400}
 .ov{position:fixed;inset:0;background:#000a;z-index:20;display:flex;align-items:flex-end;justify-content:center}
 .shx{background:var(--bg);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));border:1px solid var(--line)}
 .mb{margin:7px 0}.ml{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
-.bt{height:8px;background:#2a3342;border-radius:9px;overflow:hidden}.bt i{display:block;height:100%}
+.bt{height:8px;background:#284866;border-radius:9px;overflow:hidden}.bt i{display:block;height:100%}
 .top{display:flex;align-items:center;gap:12px}
 .rn{fill:var(--tx);font-size:26px;font-weight:700}.rl{fill:var(--mu);font-size:11px}
 .dn{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .dn button{padding:8px 14px}
 .vid{background:#000;border-radius:12px;overflow:hidden;margin-bottom:8px}
 .vid video{width:100%;display:block;max-height:46vh;object-fit:cover}
-#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#243049;padding:10px 16px;border-radius:99px;z-index:50;display:none}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2a4968;padding:10px 16px;border-radius:99px;z-index:50;display:none}
 .leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mu);margin-top:6px}
 .leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}
 svg text{font-family:inherit}
-.star{font-size:20px;background:none;padding:2px 8px;color:var(--mu)}.star.on{background:none;color:#f5b942}
-.warn{color:#f5b942;font-size:13px}
+.star{font-size:20px;background:none;padding:2px 8px;color:var(--mu)}.star.on{background:none;color:#e8c887}
+.warn{color:#e8c887;font-size:13px}
 .tick{background:none;padding:0 8px 0 0;font-size:24px;color:var(--ac);line-height:1}
 .chip.plan{outline:2px dashed var(--ac);outline-offset:-2px}
 nav button{font-size:10px}
+
+body{background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cg transform=%22translate(10 34) rotate(-35) scale(1)%22 opacity=%220.22%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg transform=%22translate(92 24) rotate(30) scale(1)%22 opacity=%220.2%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg transform=%22translate(70 110) rotate(160) scale(1)%22 opacity=%220.22%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg transform=%22translate(128 128) rotate(-100) scale(0.8)%22 opacity=%220.18%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg opacity=%220.2%22%3E%3Ccircle cx=%2264%22 cy=%2244%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%2264%22 cy=%2244%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3Cg opacity=%220.18%22%3E%3Ccircle cx=%22132%22 cy=%2276%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%22132%22 cy=%2276%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3Cg opacity=%220.18%22%3E%3Ccircle cx=%2224%22 cy=%22118%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%2224%22 cy=%22118%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3Cg opacity=%220.14%22%3E%3Ccircle cx=%22104%22 cy=%22148%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%22104%22 cy=%22148%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3Ccircle cx=%2244%22 cy=%2264%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2276%22 cy=%2270%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%22112%22 cy=%2256%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2210%22 cy=%2286%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2248%22 cy=%22140%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%22146%22 cy=%2222%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%22140%22 cy=%22106%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2284%22 cy=%22136%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2230%22 cy=%2210%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%22118%22 cy=%2296%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3C/svg%3E");background-attachment:fixed}
+.card{background:var(--card) url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg transform=%22translate(8 26) rotate(-30) scale(0.8)%22 opacity=%220.08%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg transform=%22translate(78 84) rotate(150) scale(0.8)%22 opacity=%220.07%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg opacity=%220.07%22%3E%3Ccircle cx=%2282%22 cy=%2226%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%2282%22 cy=%2226%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3Cg opacity=%220.06%22%3E%3Ccircle cx=%2228%22 cy=%2292%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%2228%22 cy=%2292%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3C/svg%3E")}
+#app::before{content:"";display:block;height:16px;margin:-14px -14px 10px;background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2228%22 height=%2216%22%3E%3Crect width=%2228%22 height=%2216%22 fill=%22%25231b3550%22/%3E%3Cpath d=%22M14 2L20 8L14 14L8 8Z%22 fill=%22%23e0948a%22 stroke=%22%23e0948a%22 stroke-width=%221%22 opacity=%220.95%22/%3E%3Cpath d=%22M14 5L17 8L14 11L11 8Z%22 fill=%22%23f4ead9%22 stroke=%22%23f4ead9%22 stroke-width=%221%22 opacity=%220.95%22/%3E%3Ccircle cx=%220%22 cy=%228%22 r=%221.6%22 fill=%22%236db3e0%22/%3E%3Ccircle cx=%2228%22 cy=%228%22 r=%221.6%22 fill=%22%236db3e0%22/%3E%3Ccircle cx=%2214%22 cy=%228%22 r=%221%22 fill=%22%252313283d%22/%3E%3C/svg%3E") repeat-x center;border-bottom:1px solid var(--line)}
+nav{background-image:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2228%22 height=%2216%22%3E%3Crect width=%2228%22 height=%2216%22 fill=%22%25231b3550%22/%3E%3Cpath d=%22M14 2L20 8L14 14L8 8Z%22 fill=%22%23e0948a%22 stroke=%22%23e0948a%22 stroke-width=%221%22 opacity=%220.95%22/%3E%3Cpath d=%22M14 5L17 8L14 11L11 8Z%22 fill=%22%23f4ead9%22 stroke=%22%23f4ead9%22 stroke-width=%221%22 opacity=%220.95%22/%3E%3Ccircle cx=%220%22 cy=%228%22 r=%221.6%22 fill=%22%236db3e0%22/%3E%3Ccircle cx=%2228%22 cy=%228%22 r=%221.6%22 fill=%22%236db3e0%22/%3E%3Ccircle cx=%2214%22 cy=%228%22 r=%221%22 fill=%22%252313283d%22/%3E%3C/svg%3E");background-repeat:repeat-x;background-position:center top;padding-top:16px}
+.shx{background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cg transform=%22translate(10 34) rotate(-35) scale(1)%22 opacity=%220.22%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg transform=%22translate(92 24) rotate(30) scale(1)%22 opacity=%220.2%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg transform=%22translate(70 110) rotate(160) scale(1)%22 opacity=%220.22%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg transform=%22translate(128 128) rotate(-100) scale(0.8)%22 opacity=%220.18%22%3E%3Cpath d=%22M0 0C9-13 24-13 34 0C24 13 9 13 0 0Z%22 fill=%22%23e0948a%22/%3E%3Cpath d=%22M3 0H31M10 0L16-6M10 0L16 6M18 0L24-5M18 0L24 5%22 stroke=%22%252313283d%22 stroke-width=%221.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/g%3E%3Cg opacity=%220.2%22%3E%3Ccircle cx=%2264%22 cy=%2244%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%2264%22 cy=%2244%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3Cg opacity=%220.18%22%3E%3Ccircle cx=%22132%22 cy=%2276%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%22132%22 cy=%2276%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3Cg opacity=%220.18%22%3E%3Ccircle cx=%2224%22 cy=%22118%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%2224%22 cy=%22118%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3Cg opacity=%220.14%22%3E%3Ccircle cx=%22104%22 cy=%22148%22 r=%225.5%22 fill=%22none%22 stroke=%22%23f4ead9%22 stroke-width=%221.4%22/%3E%3Ccircle cx=%22104%22 cy=%22148%22 r=%221.6%22 fill=%22%23f4ead9%22/%3E%3C/g%3E%3Ccircle cx=%2244%22 cy=%2264%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2276%22 cy=%2270%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%22112%22 cy=%2256%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2210%22 cy=%2286%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2248%22 cy=%22140%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%22146%22 cy=%2222%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%22140%22 cy=%22106%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2284%22 cy=%22136%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%2230%22 cy=%2210%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3Ccircle cx=%22118%22 cy=%2296%22 r=%221.7%22 fill=%22%236db3e0%22 opacity=%220.35%22/%3E%3C/svg%3E")}
+h2{text-shadow:0 1px 0 #0006}
 </style>
 </head>
 <body>
@@ -97,7 +104,7 @@ if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
 
 const NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
 const SLOTS=['Breakfast','Lunch','Dinner','Snacks'];
-const COL={p:'#4f9cf9',c:'#f5b942',f:'#ef6f6c'};
+const COL={p:'#6db3e0',c:'#e8c887',f:'#e0948a'};
 let view='today',date=today(),range=7,fcWeeks=12,fcCustom=2000,foodQ='',foodCat='',mealCat='',wRange=30;
 
 function dayTotals(d){const t={k:0,p:0,f:0,c:0};(S.log[d]||[]).forEach(e=>{if(e.planned)return;t.k+=e.k;t.p+=e.p;t.f+=e.f;t.c+=e.c});return t}
@@ -269,7 +276,7 @@ function macroBar(l,v,t,col){return `<div class="mb"><div class="ml"><span>${l}<
 function vToday(){
   if(date>=today())applyRecurring(date);
   const t=dayTotals(date),pt=plannedTotals(date),s=targets(),left=s.kcal-t.k,pct=Math.min(1,t.k/(s.kcal||1)),R=52,C=2*Math.PI*R;
-  const ring=`<svg width="130" height="130" viewBox="0 0 130 130"><circle cx="65" cy="65" r="${R}" fill="none" stroke="#2a3342" stroke-width="12"/><circle cx="65" cy="65" r="${R}" fill="none" stroke="${left<0?'#ef6f6c':'#34d399'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*pct} ${C}" transform="rotate(-90 65 65)"/><text x="65" y="64" text-anchor="middle" class="rn">${r0(Math.abs(left))}</text><text x="65" y="82" text-anchor="middle" class="rl">${left<0?'kcal over':'kcal left'}</text></svg>`;
+  const ring=`<svg width="130" height="130" viewBox="0 0 130 130"><circle cx="65" cy="65" r="${R}" fill="none" stroke="#284866" stroke-width="12"/><circle cx="65" cy="65" r="${R}" fill="none" stroke="${left<0?'#e0948a':'#a9c08a'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*pct} ${C}" transform="rotate(-90 65 65)"/><text x="65" y="64" text-anchor="middle" class="rn">${r0(Math.abs(left))}</text><text x="65" y="82" text-anchor="middle" class="rl">${left<0?'kcal over':'kcal left'}</text></svg>`;
   return `<h2>Fuel <span class="sp"></span><button class="sm" onclick="settingsSheet()">⚙ Settings</button></h2>
   <div class="dn"><button onclick="date=addDays(date,-1);render()">‹</button><b>${dateLabel(date)}</b><button onclick="date=addDays(date,1);render()">›</button></div>
   <div class="card"><div class="top">${ring}<div style="flex:1"><div class="muted">Eaten ${r0(t.k)} of ${s.kcal} kcal${pt.k?` · +${r0(pt.k)} planned`:''}</div>${macroBar('Protein'+(s.dyn?' · '+S.settings.protPerKg+' g/kg':''),t.p,s.p,COL.p)}${macroBar('Carbs',t.c,s.c,COL.c)}${macroBar('Fat',t.f,s.f,COL.f)}</div></div></div>
@@ -347,19 +354,19 @@ function stacked(dates){
   const tot=data.map(x=>x.p+x.c+x.f);const max=Math.max(s.kcal*1.2,...tot,100);
   const y=v=>T+(H-T-B)*(1-v/max),bw=(W-L-R)/n,bar=Math.min(bw*.72,70);
   let g='';const step=[100,250,500,1000].find(x=>max/x<=6)||1000;
-  for(let v=0;v<=max;v+=step)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#26324a"/><text x="${L-4}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="#8b98ae">${v}</text>`;
+  for(let v=0;v<=max;v+=step)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#2f4d6c"/><text x="${L-4}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="#a3b9cc">${v}</text>`;
   data.forEach((x,i)=>{const cx=L+bw*i+bw/2;let base=0;[['f',COL.f],['c',COL.c],['p',COL.p]].forEach(([k,c])=>{if(x[k]>0){g+=`<rect x="${cx-bar/2}" y="${y(base+x[k])}" width="${bar}" height="${y(base)-y(base+x[k])}" fill="${c}"/>`;base+=x[k]}});
     const lab=n<=7?DOW[parse(dates[i]).getDay()]:(i%Math.ceil(n/6)===0?short(dates[i]):'');
-    if(lab)g+=`<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="10" fill="#8b98ae">${lab}</text>`});
-  g+=`<line x1="${L}" x2="${W-R}" y1="${y(s.kcal)}" y2="${y(s.kcal)}" stroke="#34d399" stroke-width="2" stroke-dasharray="5 4"/><text x="${W-R}" y="${y(s.kcal)-4}" text-anchor="end" font-size="10" fill="#34d399">target ${s.kcal}</text>`;
+    if(lab)g+=`<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="10" fill="#a3b9cc">${lab}</text>`});
+  g+=`<line x1="${L}" x2="${W-R}" y1="${y(s.kcal)}" y2="${y(s.kcal)}" stroke="#a9c08a" stroke-width="2" stroke-dasharray="5 4"/><text x="${W-R}" y="${y(s.kcal)-4}" text-anchor="end" font-size="10" fill="#a9c08a">target ${s.kcal}</text>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%">${g}</svg>`;
 }
 function lines(series,o){
   const W=360,H=210,L=40,B=24,T=10,R=8;let xs=[],ys=[];series.forEach(s=>{if(s.hline!=null)ys.push(s.hline);(s.pts||[]).forEach(p=>{xs.push(p[0]);ys.push(p[1])})});
   if(!xs.length)return '';let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);if(o.x0!=null){x0=o.x0;x1=o.x1}if(x1===x0)x1=x0+1;if(y1-y0<1){y0-=.5;y1+=.5}
   const pd=(y1-y0)*.1;y0-=pd;y1+=pd;const X=v=>L+(W-L-R)*(v-x0)/(x1-x0),Y=v=>T+(H-T-B)*(1-(v-y0)/(y1-y0));let g='';
-  for(let i=0;i<=4;i++){const v=y0+(y1-y0)*i/4;g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#26324a"/><text x="${L-4}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="#8b98ae">${r1(v)}</text>`}
-  for(let i=0;i<=4;i++){const v=x0+(x1-x0)*i/4;g+=`<text x="${X(v)}" y="${H-8}" text-anchor="${i===4?'end':i===0?'start':'middle'}" font-size="10" fill="#8b98ae">${o.xl(Math.round(v))}</text>`}
+  for(let i=0;i<=4;i++){const v=y0+(y1-y0)*i/4;g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#2f4d6c"/><text x="${L-4}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="#a3b9cc">${r1(v)}</text>`}
+  for(let i=0;i<=4;i++){const v=x0+(x1-x0)*i/4;g+=`<text x="${X(v)}" y="${H-8}" text-anchor="${i===4?'end':i===0?'start':'middle'}" font-size="10" fill="#a3b9cc">${o.xl(Math.round(v))}</text>`}
   series.forEach(s=>{if(s.hline!=null){g+=`<line x1="${L}" x2="${W-R}" y1="${Y(s.hline)}" y2="${Y(s.hline)}" stroke="${s.color}" stroke-dasharray="4 4"/>`;return}
     if(s.pts.length>1)g+=`<polyline fill="none" stroke="${s.color}" stroke-width="${s.w||2}" points="${s.pts.map(p=>X(p[0])+','+Y(p[1])).join(' ')}"/>`;
     if(s.dots)s.pts.forEach(p=>g+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="3" fill="${s.color}"/>`)});
@@ -373,7 +380,7 @@ function vTrends(){
   const s=S.settings,within=logged.filter(t=>t.k>=s.kcal*.9&&t.k<=s.kcal*1.1).length;
   const mk=sum('p')*4+sum('c')*4+sum('f')*9||1;
   return `<h2>Trends</h2><div class="chips">${[[1,'Day'],[7,'7 days'],[30,'30 days'],[90,'90 days']].map(([r,l])=>`<button class="chip ${range===r?'on':''}" onclick="range=${r};render()">${l}</button>`).join('')}</div>
-  <div class="card">${stacked(dates)}<div class="leg"><span><i style="background:${COL.p}"></i>Protein</span><span><i style="background:${COL.c}"></i>Carbs</span><span><i style="background:${COL.f}"></i>Fat</span><span><i style="background:#34d399"></i>Target</span></div></div>
+  <div class="card">${stacked(dates)}<div class="leg"><span><i style="background:${COL.p}"></i>Protein</span><span><i style="background:${COL.c}"></i>Carbs</span><span><i style="background:${COL.f}"></i>Fat</span><span><i style="background:#a9c08a"></i>Target</span></div></div>
   <div class="card"><div class="g2"><div><div class="muted">Avg calories (${logged.length} logged days)</div><b style="font-size:22px">${r0(sum('k')/n)}</b> <span class="muted">/ ${s.kcal}</span></div><div><div class="muted">Within ±10% of target</div><b style="font-size:22px">${within}</b> <span class="muted">/ ${logged.length} days</span></div></div>
   <div class="g4" style="margin-top:10px"><div><div class="muted">Protein</div><b style="color:${COL.p}">${r0(sum('p')/n)} g</b></div><div><div class="muted">Carbs</div><b style="color:${COL.c}">${r0(sum('c')/n)} g</b></div><div><div class="muted">Fat</div><b style="color:${COL.f}">${r0(sum('f')/n)} g</b></div><div><div class="muted">Split P/C/F</div><b>${r0(sum('p')*400/mk)}/${r0(sum('c')*400/mk)}/${r0(sum('f')*900/mk)}</b></div></div></div>`+workoutSummary(dates)+stepsSummary(dates);
 }
@@ -394,17 +401,17 @@ function estTdee(){
   return{est:ks.reduce((a,b)=>a+b)/ks.length-slope*7700,slope,days:ks.length};
 }
 function sim(w0,kcal,weeks){const pts=[[0,w0]];let w=w0;for(let d=1;d<=weeks*7;d++){w+=(kcal-tdee(w))/7700;if(d%7===0)pts.push([d/7,w])}return pts}
-const FC=['#34d399','#4f9cf9','#f5b942','#ef6f6c','#c084fc','#94a3b8'];
+const FC=['#a9c08a','#6db3e0','#e8c887','#e0948a','#b79ad1','#a3b9cc'];
 function vWeight(){
   const ws=sortedW(),cur=ws.length?ws[ws.length-1].kg:null,s=S.settings,tr=trendW(ws);
   let h=`<h2>Weight</h2>${fitCard()}<div class="card"><div class="g2"><div><label>Date</label><input id="wd" type="date" value="${today()}"></div><div><label>Weight (kg)</label><input id="wk" type="number" inputmode="decimal" step="0.1" value="${cur??''}"></div></div><button class="pri" style="width:100%;margin-top:10px" onclick="addWeight()">Save weight</button></div>`;
   if(ws.length){
     const cfg=WR[wRange],t0=today(),start=cfg.n?addDays(t0,-(cfg.n-1)):ws[0].date,xi=d=>(parse(d)-parse(start))/864e5;
     const view=ws.filter(w=>w.date>=start),avg=rollAvg(ws,cfg.avg).filter(w=>w.date>=start);
-    const ser=[{pts:view.map(w=>[xi(w.date),w.kg]),color:'#566580',dots:true,w:1},{pts:avg.map(w=>[xi(w.date),w.kg]),color:'#34d399',w:3}];
-    if(s.targetKg)ser.push({hline:s.targetKg,color:'#f5b942'});
+    const ser=[{pts:view.map(w=>[xi(w.date),w.kg]),color:'#7691a8',dots:true,w:1},{pts:avg.map(w=>[xi(w.date),w.kg]),color:'#a9c08a',w:3}];
+    if(s.targetKg)ser.push({hline:s.targetKg,color:'#e8c887'});
     const m30=ws.filter(w=>w.date>=addDays(today(),-30));
-    h+=`<div class="card"><div class="chips" style="margin-top:0">${[[7,'7d'],[30,'30d'],[90,'90d'],[365,'Year'],[0,'Max']].map(([r,l])=>`<button class="chip ${wRange===r?'on':''}" onclick="wRange=${r};render()">${l}</button>`).join('')}</div>${view.length?lines(ser,{xl:i=>short(addDays(start,i)),x0:0,x1:Math.max(1,xi(t0))}):'<div class="muted" style="padding:20px 0">No weigh-ins in this range.</div>'}<div class="leg"><span><i style="background:#566580"></i>Weigh-ins</span><span><i style="background:#34d399"></i>${cfg.avg}-day average</span>${s.targetKg?'<span><i style="background:#f5b942"></i>Target</span>':''}</div>
+    h+=`<div class="card"><div class="chips" style="margin-top:0">${[[7,'7d'],[30,'30d'],[90,'90d'],[365,'Year'],[0,'Max']].map(([r,l])=>`<button class="chip ${wRange===r?'on':''}" onclick="wRange=${r};render()">${l}</button>`).join('')}</div>${view.length?lines(ser,{xl:i=>short(addDays(start,i)),x0:0,x1:Math.max(1,xi(t0))}):'<div class="muted" style="padding:20px 0">No weigh-ins in this range.</div>'}<div class="leg"><span><i style="background:#7691a8"></i>Weigh-ins</span><span><i style="background:#a9c08a"></i>${cfg.avg}-day average</span>${s.targetKg?'<span><i style="background:#e8c887"></i>Target</span>':''}</div>
     <div class="g2" style="margin-top:10px"><div><div class="muted">Trend weight</div><b style="font-size:22px">${r1(tr[tr.length-1].kg)} kg</b></div><div><div class="muted">Last 30 days</div><b style="font-size:22px">${m30.length>1?(m30[m30.length-1].kg-m30[0].kg>=0?'+':'')+r1(m30[m30.length-1].kg-m30[0].kg)+' kg':'n/a'}</b></div></div>
     <div style="margin-top:8px">${ws.slice(-6).reverse().map(w=>`<div class="row" onclick="delWeight('${w.date}')"><span>${short(w.date)}</span><b>${w.kg} kg</b><span class="muted">tap to delete</span></div>`).join('')}</div></div>`;
   }
@@ -500,7 +507,7 @@ async function importFoods(file){
 const WTYPES=['Run','Hike','Walk','Weightlifting','Powerlifting','Sport','Other'];
 function trainCard(){
   const done=S.workouts[date]||[],sched=S.workoutPlan[parse(date).getDay()]||[];
-  const strip=[...Array(7)].map((_,i)=>{const d=addDays(date,i-6),on=(S.workouts[d]||[]).length>0;return `<div style="text-align:center"><div style="width:22px;height:22px;border-radius:50%;margin:0 auto 2px;background:${on?'var(--ac)':'#2a3342'}"></div><span class="muted" style="font-size:11px">${DOW[parse(d).getDay()][0]}</span></div>`}).join('');
+  const strip=[...Array(7)].map((_,i)=>{const d=addDays(date,i-6),on=(S.workouts[d]||[]).length>0;return `<div style="text-align:center"><div style="width:22px;height:22px;border-radius:50%;margin:0 auto 2px;background:${on?'var(--ac)':'#284866'}"></div><span class="muted" style="font-size:11px">${DOW[parse(d).getDay()][0]}</span></div>`}).join('');
   const sub=done.length?done.join(' + '):(sched.length?'Planned: '+sched.join(' + '):'nothing logged');
   return `<div class="card"><div class="sh2"><b>Training</b><span class="muted">${sub}</span><span class="sp"></span><button class="sm" onclick="editSchedule()">Schedule</button></div>
   <div class="chips">${WTYPES.map(t=>`<button class="chip ${done.includes(t)?'on':sched.includes(t)?'plan':''}" onclick="toggleW('${t}')">${done.includes(t)?'✓ ':''}${t}</button>`).join('')}</div>
@@ -512,7 +519,7 @@ function workoutSummary(dates){
   dates.forEach(d=>{const a=S.workouts[d]||[];if(a.length)active++;a.forEach(t=>counts[t]=(counts[t]||0)+1);if(d<=today())(S.workoutPlan[parse(d).getDay()]||[]).forEach(t=>{sch++;if(a.includes(t))hit++})});
   const total=Object.values(counts).reduce((a,b)=>a+b,0);
   return `<div class="card"><div class="sh2"><b>Training</b><span class="sp"></span><span class="muted">${active} of ${dates.length} days active</span></div>
-  ${total?`<div class="chips">${WTYPES.filter(t=>counts[t]).map(t=>`<span class="chip" style="background:#243049">${t} × ${counts[t]}</span>`).join('')}</div>`:'<div class="muted">No workouts logged in this period.</div>'}
+  ${total?`<div class="chips">${WTYPES.filter(t=>counts[t]).map(t=>`<span class="chip" style="background:#2a4968">${t} × ${counts[t]}</span>`).join('')}</div>`:'<div class="muted">No workouts logged in this period.</div>'}
   ${sch?`<div class="muted" style="margin-top:6px">Scheduled sessions done: <b>${hit} / ${sch}</b></div>`:''}</div>`;
 }
 
@@ -615,7 +622,7 @@ function measCard(){
   if(!sel)return `<div class="card"><h3>Body measurements</h3><button onclick="addMeasType()">+ Add a measurement</button></div>`;
   const data=(S.meas[sel]||[]).slice().sort((a,b)=>a.date<b.date?-1:1),cfg=WR[mRange],t0=today(),start=cfg.n?addDays(t0,-(cfg.n-1)):(data.length?data[0].date:t0);
   const view=data.filter(x=>x.date>=start),xi=d=>(parse(d)-parse(start))/864e5;
-  const chart=view.length?lines([{pts:view.map(x=>[xi(x.date),x.v]),color:'#4f9cf9',dots:true,w:2}],{xl:i=>short(addDays(start,i)),x0:0,x1:Math.max(1,xi(t0))}):'<div class="muted" style="padding:16px 0">No measurements in this range.</div>';
+  const chart=view.length?lines([{pts:view.map(x=>[xi(x.date),x.v]),color:'#6db3e0',dots:true,w:2}],{xl:i=>short(addDays(start,i)),x0:0,x1:Math.max(1,xi(t0))}):'<div class="muted" style="padding:16px 0">No measurements in this range.</div>';
   const last=data[data.length-1],first=data[0];
   return `<div class="card"><h3>Body measurements (cm)</h3>
   <div class="chips">${S.measTypes.map((t,i)=>`<button class="chip ${t===sel?'on':''}" onclick="measSel=S.measTypes[${i}];render()">${esc(t)}</button>`).join('')}<button class="chip" onclick="addMeasType()">+ New</button></div>
@@ -654,13 +661,13 @@ function stepsCard(){
   const has=Object.keys(S.steps).length>0;
   if(!NATIVE&&!has)return '';
   const goal=S.settings.stepGoal||8000,v=S.steps[date]||0,last7=[...Array(7)].map((_,i)=>addDays(date,i-6));
-  const bars=last7.map(d=>{const n=S.steps[d]||0,pc=Math.min(100,n/goal*100);return `<div style="flex:1;text-align:center"><div style="height:34px;display:flex;align-items:flex-end;justify-content:center"><div style="width:14px;height:${Math.max(3,pc*.34)}px;border-radius:4px;background:${n>=goal?'var(--ac)':'#566580'}"></div></div><span class="muted" style="font-size:11px">${DOW[parse(d).getDay()][0]}</span></div>`}).join('');
+  const bars=last7.map(d=>{const n=S.steps[d]||0,pc=Math.min(100,n/goal*100);return `<div style="flex:1;text-align:center"><div style="height:34px;display:flex;align-items:flex-end;justify-content:center"><div style="width:14px;height:${Math.max(3,pc*.34)}px;border-radius:4px;background:${n>=goal?'var(--ac)':'#7691a8'}"></div></div><span class="muted" style="font-size:11px">${DOW[parse(d).getDay()][0]}</span></div>`}).join('');
   let note='';
   if(NATIVE&&hcState==='need')note=`<button class="pri" style="width:100%;margin-top:8px" onclick="connectSteps()">Connect Health Connect to sync steps</button>`;
   else if(NATIVE&&hcState==='unavailable')note=`<div class="warn" style="margin-top:6px">Health Connect isn't available on this phone. Install it from the Play Store to sync steps.</div>`;
   else if(NATIVE&&hcState==='error')note=`<button class="sm" style="margin-top:8px" onclick="syncSteps(true)">Couldn't read steps. Retry</button>`;
   return `<div class="card"><div class="sh2"><b>Steps</b><span class="muted">${v.toLocaleString()} of ${goal.toLocaleString()}</span></div>
-  <div class="bt" style="margin:4px 0 8px"><i style="width:${Math.min(100,v/goal*100)}%;background:${v>=goal?'var(--ac)':'#4f9cf9'}"></i></div>
+  <div class="bt" style="margin:4px 0 8px"><i style="width:${Math.min(100,v/goal*100)}%;background:${v>=goal?'var(--ac)':'#6db3e0'}"></i></div>
   <div style="display:flex;gap:2px">${bars}</div>${note}</div>`;
 }
 function stepsSummary(dates){
@@ -670,10 +677,10 @@ function stepsSummary(dates){
   if(dates.length>1){
     const W=360,H=150,L=40,B=22,T=8,R=6,max=Math.max(goal*1.2,...vals,1000),y=v=>T+(H-T-B)*(1-v/max),bw=(W-L-R)/dates.length,bar=Math.min(bw*.72,40);
     let g='';const step=[1000,2000,5000,10000].find(x=>max/x<=5)||10000;
-    for(let v=0;v<=max;v+=step)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#26324a"/><text x="${L-4}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="#8b98ae">${v>=1000?v/1000+'k':v}</text>`;
-    vals.forEach((v,i)=>{const cx=L+bw*i+bw/2;if(v>0)g+=`<rect x="${cx-bar/2}" y="${y(v)}" width="${bar}" height="${y(0)-y(v)}" fill="${v>=goal?'#34d399':'#4f9cf9'}"/>`;
-      const lab=dates.length<=7?DOW[parse(dates[i]).getDay()]:(i%Math.ceil(dates.length/6)===0?short(dates[i]):'');if(lab)g+=`<text x="${cx}" y="${H-7}" text-anchor="middle" font-size="10" fill="#8b98ae">${lab}</text>`});
-    g+=`<line x1="${L}" x2="${W-R}" y1="${y(goal)}" y2="${y(goal)}" stroke="#34d399" stroke-width="2" stroke-dasharray="5 4"/>`;
+    for(let v=0;v<=max;v+=step)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#2f4d6c"/><text x="${L-4}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="#a3b9cc">${v>=1000?v/1000+'k':v}</text>`;
+    vals.forEach((v,i)=>{const cx=L+bw*i+bw/2;if(v>0)g+=`<rect x="${cx-bar/2}" y="${y(v)}" width="${bar}" height="${y(0)-y(v)}" fill="${v>=goal?'#a9c08a':'#6db3e0'}"/>`;
+      const lab=dates.length<=7?DOW[parse(dates[i]).getDay()]:(i%Math.ceil(dates.length/6)===0?short(dates[i]):'');if(lab)g+=`<text x="${cx}" y="${H-7}" text-anchor="middle" font-size="10" fill="#a3b9cc">${lab}</text>`});
+    g+=`<line x1="${L}" x2="${W-R}" y1="${y(goal)}" y2="${y(goal)}" stroke="#a9c08a" stroke-width="2" stroke-dasharray="5 4"/>`;
     chart=`<svg viewBox="0 0 ${W} ${H}" width="100%">${g}</svg>`;
   }
   return `<div class="card"><div class="sh2"><b>Steps</b><span class="sp"></span><span class="muted">goal ${goal.toLocaleString()}</span></div>${chart}
