@@ -42,6 +42,8 @@ android {
             storePassword "fuelfuel"
             keyAlias "fuel"
             keyPassword "fuelfuel"
+            v1SigningEnabled true
+            v2SigningEnabled true
         }
     }
     kotlinOptions {

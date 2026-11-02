@@ -59,3 +59,28 @@ jobs:
         with:
           name: Fuel-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Build lite APK (no Health Connect, for install diagnosis)
+        working-directory: android
+        run: |
+          python3 - <<'PY'
+          import re
+          p='app/src/main/AndroidManifest.xml'
+          s=open(p).read()
+          s=re.sub(r'<uses-permission android:name="android.permission.health.READ_STEPS" />','',s)
+          s=re.sub(r'<queries>.*?</queries>','',s,flags=re.S)
+          s=re.sub(r'<activity-alias.*?</activity-alias>','',s,flags=re.S)
+          s=re.sub(r'<intent-filter>\s*<action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />\s*</intent-filter>','',s)
+          open(p,'w').write(s)
+          g='app/build.gradle'
+          t=open(g).read().replace('applicationId "com.dilhan.fuel"','applicationId "com.dilhan.fuellite"')
+          open(g,'w').write(t)
+          PY
+          ./gradlew assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/app-lite.apk
+
+      - name: Upload lite APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fuel-lite-APK
+          path: android/app/build/outputs/apk/debug/app-lite.apk
