@@ -1,0 +1,6 @@
+{
+  "appId": "com.dilhan.fuel",
+  "appName": "Fuel",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}
