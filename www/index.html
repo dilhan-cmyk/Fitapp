@@ -99,7 +99,7 @@ function loadScript(src){return new Promise((res,rej)=>{if(document.querySelecto
 
 /* ---------- state (all stored on the phone, in localStorage) ---------- */
 const KEY='fuel.v1';
-const def=()=>({settings:{kcal:2200,p:160,f:70,c:230,height:178,age:30,sex:'m',activity:1.4,targetKg:null,rate:0.5,tdeeOffset:0,protPerKg:null,stepGoal:8000},foods:[],meals:[],log:{},weights:[],auto:{},recent:[],cats:{food:[],meal:[]},workouts:{},steps:{},workoutPlan:{},shopDone:{},meas:{},measTypes:['Waist','Chest','Hips','Arm','Thigh','Neck']});
+const def=()=>({settings:{kcal:2200,p:160,f:70,c:230,height:178,age:30,sex:'m',activity:1.4,targetKg:null,rate:0.5,tdeeOffset:0,protPerKg:null,stepGoal:8000,baseSteps:null,eatBack:100},foods:[],meals:[],log:{},weights:[],auto:{},recent:[],cats:{food:[],meal:[]},workouts:{},exercise:{},steps:{},workoutPlan:{},shopDone:{},meas:{},measTypes:['Waist','Chest','Hips','Arm','Thigh','Neck']});
 function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j){const d=def();return Object.assign(d,j,{settings:Object.assign(d.settings,j.settings||{}),cats:Object.assign({food:[],meal:[]},j.cats||{})})}}catch(e){}return def()}
 let S=load();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Storage full or blocked')}}
@@ -486,18 +486,66 @@ function addMealTo(d,m,slot,quiet,planned){
 }
 function dateLabel(d){const t=today();if(d===t)return 'Today';if(d===addDays(t,-1))return 'Yesterday';if(d===addDays(t,1))return 'Tomorrow';const x=parse(d);return DOW[x.getDay()]+' '+short(d)}
 function macroBar(l,v,t,col){return `<div class="mb"><div class="ml"><span>${l}</span><span>${r0(v)} / ${t} g</span></div><div class="bt"><i style="width:${Math.min(100,t?v/t*100:0)}%;background:${col}"></i></div></div>`}
+/* ---------- activity calories (steps above baseline + logged exercise) ---------- */
+const EXMET={Run:9.8,Walk:3.5,Hike:6,Ride:7.5,Gym:5,Swim:7,Sport:7,Other:5};
+const kgNow=()=>curWeight()||80;
+// Steps already "priced into" your calorie target: your own number, or your average over the previous 28 days.
+function baseSteps(d){
+  const c=S.settings.baseSteps;if(c!=null&&c!=='')return +c;
+  const xs=[];for(let i=1;i<=28;i++){const v=S.steps[addDays(d,-i)];if(v>0)xs.push(v)}
+  return xs.length>=5?Math.round(xs.reduce((a,b)=>a+b,0)/xs.length):6000;
+}
+const exList=d=>S.exercise[d]||[];
+const exSteps=d=>exList(d).reduce((a,e)=>a+(+e.steps||0),0);
+const exKcal=d=>exList(d).reduce((a,e)=>a+(+e.kcal||0),0);
+function stepExtra(d){return Math.max(0,(S.steps[d]||0)-exSteps(d)-baseSteps(d))}
+const stepKcal=d=>Math.round(stepExtra(d)*0.0004*kgNow());
+function burn(d){
+  const f=(S.settings.eatBack==null?100:S.settings.eatBack)/100,st=stepKcal(d),ex=Math.round(exKcal(d));
+  return{st,ex,f,total:Math.round((st+ex)*f)};
+}
+const budget=d=>S.settings.kcal+burn(d).total;
+function burnCard(){
+  const b=burn(date),list=exList(date),has=S.steps[date]>0;
+  const lines=[];
+  if(has)lines.push(`Steps ${S.steps[date].toLocaleString()}: ${stepExtra(date).toLocaleString()} above your usual ${baseSteps(date).toLocaleString()} = +${b.st} kcal`);
+  const rows=list.map(e=>`<div class="row" onclick="activitySheet('${e.id}')"><div style="flex:1"><div>${esc(e.type)}${e.min?' · '+e.min+' min':''}</div>${e.note?`<div class="muted">${esc(e.note)}</div>`:''}</div><b>+${r0(e.kcal)}</b></div>`).join('');
+  return `<div class="card"><div class="sh2"><b>Activity burned</b><span class="muted">${b.total?'+'+b.total+' kcal to your budget':'nothing added'}</span><span class="sp"></span><button class="add" onclick="activitySheet()">+</button></div>
+  ${rows}${lines.map(l=>`<div class="muted" style="margin-top:6px">${l}</div>`).join('')}
+  ${b.f!==1&&(b.st+b.ex)?`<div class="muted" style="margin-top:4px">Counted at ${r0(b.f*100)}% (${b.st+b.ex} kcal burned)</div>`:''}</div>`;
+}
+function activitySheet(id){
+  const e=id?exList(date).find(x=>x.id===id):null,kg=kgNow();
+  const ov=sheet(`<h3>${e?'Edit activity':'Add activity'}</h3>
+  <label>Type</label><select id="at">${Object.keys(EXMET).map(t=>`<option ${e&&e.type===t?'selected':''}>${t}</option>`).join('')}</select>
+  <div class="g2"><div><label>Minutes</label><input id="am" type="number" inputmode="numeric" value="${e?e.min||'':''}"></div><div><label>Calories burned</label><input id="ak" type="number" inputmode="numeric" value="${e?r0(e.kcal):''}"></div></div>
+  <button class="sm" id="aest" style="margin-top:6px">Estimate from type and minutes</button><div class="muted" id="ae" style="margin-top:4px">Active calories only (what you burned above resting). Use your watch figure if you have one.</div>
+  <label>Note (optional)</label><input id="an" value="${esc(e?e.note||'':'')}" placeholder="e.g. 5 km easy">
+  <label>Steps this added to your step count (optional)</label><input id="as" type="number" inputmode="numeric" value="${e&&e.steps?e.steps:''}">
+  <div class="muted">Only fill this in if your step count already includes this activity (for example a run your phone tracked). Those steps are then not counted a second time.</div>
+  <div class="g2" style="margin-top:14px">${e?'<button class="dng" id="ad">Delete</button>':'<button id="ac">Cancel</button>'}<button class="pri" id="ao">Save</button></div>`);
+  $('#aest',ov).onclick=()=>{const m=num($('#am',ov).value);if(!m)return toast('Enter the minutes first');const k=Math.round((EXMET[$('#at',ov).value]-1)*kgNow()*m/60);$('#ak',ov).value=k;$('#ae',ov).textContent=`Estimated for ${r1(kgNow())} kg. Edit it if your watch says otherwise.`};
+  $('#ao',ov).onclick=()=>{
+    const k=num($('#ak',ov).value);if(k<=0)return toast('Enter the calories burned');
+    const o={id:e?e.id:uid(),type:$('#at',ov).value,min:num($('#am',ov).value)||0,kcal:k,note:$('#an',ov).value.trim(),steps:num($('#as',ov).value)||0};
+    const a=exList(date).slice();if(e)a[a.findIndex(x=>x.id===e.id)]=o;else a.push(o);
+    S.exercise[date]=a;save();closeSheet(ov);render();
+  };
+  if(e)$('#ad',ov).onclick=()=>{const a=exList(date).filter(x=>x.id!==e.id);if(a.length)S.exercise[date]=a;else delete S.exercise[date];save();closeSheet(ov);render()};
+  else $('#ac',ov).onclick=()=>closeSheet(ov);
+}
 function vToday(){
   if(date>=today())applyRecurring(date);
-  const t=dayTotals(date),pt=plannedTotals(date),s=targets(),left=s.kcal-t.k,pct=Math.min(1,t.k/(s.kcal||1)),R=52,C=2*Math.PI*R;
+  const t=dayTotals(date),pt=plannedTotals(date),s=targets(),bd=burn(date),B=s.kcal+bd.total,left=B-t.k,pct=Math.min(1,t.k/(B||1)),R=52,C=2*Math.PI*R;
   const ring=`<svg width="130" height="130" viewBox="0 0 130 130"><circle cx="65" cy="65" r="${R}" fill="none" stroke="#284866" stroke-width="12"/><circle cx="65" cy="65" r="${R}" fill="none" stroke="${left<0?'#e0948a':'#a9c08a'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*pct} ${C}" transform="rotate(-90 65 65)"/><text x="65" y="64" text-anchor="middle" class="rn">${r0(Math.abs(left))}</text><text x="65" y="82" text-anchor="middle" class="rl">${left<0?'kcal over':'kcal left'}</text></svg>`;
-  return `<h2>Fuel <span class="sp"></span><button class="sm" onclick="settingsSheet()">⚙ Settings</button></h2>${updBanner()}
+  return `<h2>Fuel <span class="sp"></span><button class="sm" onclick="settingsSheet()">⚙ Settings</button></h2>${updBanner()}${updSetup()}
   <div class="dn"><button onclick="date=addDays(date,-1);render()">‹</button><b>${dateLabel(date)}</b><button onclick="date=addDays(date,1);render()">›</button></div>
-  <div class="card"><div class="top">${ring}<div style="flex:1"><div class="muted">Eaten ${r0(t.k)} of ${s.kcal} kcal${pt.k?` · +${r0(pt.k)} planned`:''}</div>${macroBar('Protein'+(s.dyn?' · '+S.settings.protPerKg+' g/kg':''),t.p,s.p,COL.p)}${macroBar('Carbs',t.c,s.c,COL.c)}${macroBar('Fat',t.f,s.f,COL.f)}</div></div></div>
-  ${planBar()}${trainCard()}${stepsCard()}${fitsCard()}
+  <div class="card"><div class="top">${ring}<div style="flex:1"><div class="muted">Eaten ${r0(t.k)} of ${B} kcal${pt.k?` · +${r0(pt.k)} planned`:''}</div>${bd.total?`<div class="muted" style="font-size:12px">${s.kcal} target + ${bd.total} activity</div>`:''}${macroBar('Protein'+(s.dyn?' · '+S.settings.protPerKg+' g/kg':''),t.p,s.p,COL.p)}${macroBar('Carbs',t.c,s.c,COL.c)}${macroBar('Fat',t.f,s.f,COL.f)}</div></div></div>
+  ${planBar()}${burnCard()}${trainCard()}${stepsCard()}${fitsCard()}
   ${SLOTS.map(sl=>{const all=(S.log[date]||[]).filter(e=>e.slot===sl),es=all.filter(e=>!e.planned),k=es.reduce((a,e)=>a+e.k,0),sP=es.reduce((a,e)=>a+e.p,0),sC=es.reduce((a,e)=>a+e.c,0),sF=es.reduce((a,e)=>a+e.f,0);
     return `<div class="card"><div class="sh2"><b>${sl}</b><span class="muted">${r0(k)} kcal</span><span class="sp"></span>${es.length?`<button class="sm" onclick="saveSlotMeal('${sl}')">Save as meal</button>`:''}<button class="add" onclick="addTo('${sl}')">+</button></div>${es.length?`<div class="muted" style="margin-bottom:4px"><span style="color:${COL.p}">P ${r0(sP)}g</span> · <span style="color:${COL.c}">C ${r0(sC)}g</span> · <span style="color:${COL.f}">F ${r0(sF)}g</span></div>`:''}
     ${all.map(e=>entryRow(e)).join('')}</div>`}).join('')}
-  <button style="width:100%" onclick="copyDay()">Copy ${dateLabel(addDays(date,-1)).toLowerCase()}'s food to this day</button>`;
+  <button style="width:100%" onclick="copyDay()">Copy ${dateLabel(addDays(date,-1)).toLowerCase()}'s food to this day</button>${updFooter()}`;
 }
 function addTo(sl){const fut=date>today();pickFood(sn=>{logSnap(sn,sl,date,fut);render();toast(fut?'Planned':'Added')},{meal:m=>addMealTo(date,m,sl,false,fut)})}
 function copyDay(){const src=(S.log[addDays(date,-1)]||[]).filter(e=>!e.planned);if(!src.length)return toast('Nothing logged that day');(S.log[date]=S.log[date]||[]).push(...src.map(e=>Object.assign({},e,{id:uid()})));save();render();toast('Copied')}
@@ -508,10 +556,16 @@ function saveSlotMeal(sl){
 function editEntry(id,d){
   d=d||date;
   const e=(S.log[d]||[]).find(x=>x.id===id);if(!e)return;
-  const ov=sheet(`<h3>Edit entry</h3><label>Name</label><input id="en" value="${esc(e.name)}">
+  const fd0=S.foods.find(x=>x.id===e.foodId),isFav=()=>{const x=S.foods.find(y=>y.id===e.foodId);return !!(x&&x.fav)};
+  const ov=sheet(`<h3 style="display:flex;align-items:center">Edit entry<span class="sp"></span><button class="star ${isFav()?'on':''}" id="efv" style="font-size:26px">${isFav()?'★':'☆'}</button></h3><label>Name</label><input id="en" value="${esc(e.name)}">
   <div class="g4"><div><label>kcal</label><input id="ek" type="number" step="any" value="${r1(e.k)}"></div><div><label>Protein</label><input id="ep" type="number" step="any" value="${r1(e.p)}"></div><div><label>Carbs</label><input id="ec" type="number" step="any" value="${r1(e.c)}"></div><div><label>Fat</label><input id="ef" type="number" step="any" value="${r1(e.f)}"></div></div>
   <div class="g2"><div><label>Meal</label><select id="es">${SLOTS.map(s=>`<option ${s===e.slot?'selected':''}>${s}</option>`).join('')}</select></div><div><label>Status</label><select id="est"><option value="eaten" ${e.planned?'':'selected'}>Eaten</option><option value="planned" ${e.planned?'selected':''}>Planned</option></select></div></div>
   <div class="g2" style="margin-top:14px"><button class="dng" id="ed">Delete</button><button class="pri" id="eo">Save</button></div>`);
+  $('#efv',ov).onclick=()=>{
+    let x=S.foods.find(y=>y.id===e.foodId);
+    if(!x){x={id:uid(),name:e.name,brand:'',g:null,defG:1,label:e.desc||'serving',k:e.k,p:e.p,c:e.c,f:e.f,cats:[],fav:false};S.foods.push(x);e.foodId=x.id}
+    x.fav=!x.fav;save();const b=$('#efv',ov);b.textContent=x.fav?'★':'☆';b.classList.toggle('on',x.fav);toast(x.fav?'Added to favourites':'Removed from favourites');
+  };
   $('#eo',ov).onclick=()=>{Object.assign(e,{name:$('#en',ov).value,k:num($('#ek',ov).value),p:num($('#ep',ov).value),c:num($('#ec',ov).value),f:num($('#ef',ov).value),slot:$('#es',ov).value});if($('#est',ov).value==='planned')e.planned=true;else delete e.planned;save();closeSheet(ov);render()};
   $('#ed',ov).onclick=()=>{S.log[d]=S.log[d].filter(x=>x.id!==id);save();closeSheet(ov);render()};
 }
@@ -590,7 +644,7 @@ function lines(series,o){
 function vTrends(){
   const end=range===1?date:today(),dates=[...Array(range)].map((_,i)=>addDays(end,-(range-1-i)));
   const tt=dates.map(dayTotals),logged=tt.filter(t=>t.k>0),n=logged.length||1,sum=k=>logged.reduce((a,t)=>a+t[k],0);
-  const s=S.settings,within=logged.filter(t=>t.k>=s.kcal*.9&&t.k<=s.kcal*1.1).length;
+  const s=S.settings,within=dates.filter((d,i)=>tt[i].k>0&&tt[i].k>=budget(d)*.9&&tt[i].k<=budget(d)*1.1).length;
   const mk=sum('p')*4+sum('c')*4+sum('f')*9||1;
   return `<h2>Trends</h2><div class="chips">${[[1,'Day'],[7,'7 days'],[30,'30 days'],[90,'90 days']].map(([r,l])=>`<button class="chip ${range===r?'on':''}" onclick="range=${r};render()">${l}</button>`).join('')}</div>
   <div class="card">${stacked(dates)}<div class="leg"><span><i style="background:${COL.p}"></i>Protein</span><span><i style="background:${COL.c}"></i>Carbs</span><span><i style="background:${COL.f}"></i>Fat</span><span><i style="background:#a9c08a"></i>Target</span></div></div>
@@ -667,6 +721,9 @@ function settingsSheet(){
   <label>Dynamic protein: grams per kg of bodyweight (blank = use the fixed protein above)</label><input id="tpk" type="number" step="0.1" inputmode="decimal" value="${s.protPerKg||''}">
   <div class="muted">When set, your protein target follows your trend weight and carbs adjust so calories stay the same. Currently ${targets().p} g protein.</div>
   <label>Daily step goal</label><input id="tsg" type="number" inputmode="numeric" value="${s.stepGoal||8000}">
+  <label>Usual daily steps already in your calorie target (blank = automatic, your average of the last 28 days)</label><input id="tbs" type="number" inputmode="numeric" value="${s.baseSteps==null?'':s.baseSteps}" placeholder="auto">
+  <label>Add activity calories to the budget at (%)</label><input id="teb" type="number" inputmode="numeric" value="${s.eatBack==null?100:s.eatBack}">
+  <div class="muted">Steps only add calories above that usual number. Use 50 to eat back half of what you burned.</div>
   <div class="muted" id="tm" style="margin:6px 0"></div><div class="g2"><button id="tcalc">Calories from macros</button><button class="pri" id="tsave">Save targets</button></div>
   <h3 style="margin-top:20px">Data</h3>
   <button style="width:100%;margin-bottom:8px" id="imf">📥 Import foods from Excel / CSV</button>
@@ -688,7 +745,7 @@ function settingsSheet(){
   const upd=()=>{$('#tm',ov).textContent=`Macros add up to ${r0(num($('#tp',ov).value)*4+num($('#tc',ov).value)*4+num($('#tf',ov).value)*9)} kcal`};
   ['tk','tp','tc','tf'].forEach(i=>$('#'+i,ov).oninput=upd);upd();
   $('#tcalc',ov).onclick=()=>{$('#tk',ov).value=r0(num($('#tp',ov).value)*4+num($('#tc',ov).value)*4+num($('#tf',ov).value)*9);upd()};
-  $('#tsave',ov).onclick=()=>{Object.assign(S.settings,{stepGoal:num($('#tsg',ov).value)||8000,protPerKg:num($('#tpk',ov).value)||null,kcal:num($('#tk',ov).value),p:num($('#tp',ov).value),c:num($('#tc',ov).value),f:num($('#tf',ov).value)});save();closeSheet(ov);render()};
+  $('#tsave',ov).onclick=()=>{Object.assign(S.settings,{stepGoal:num($('#tsg',ov).value)||8000,baseSteps:$('#tbs',ov).value.trim()===''?null:num($('#tbs',ov).value),eatBack:$('#teb',ov).value.trim()===''?100:Math.max(0,Math.min(100,num($('#teb',ov).value))),protPerKg:num($('#tpk',ov).value)||null,kcal:num($('#tk',ov).value),p:num($('#tp',ov).value),c:num($('#tc',ov).value),f:num($('#tf',ov).value)});save();closeSheet(ov);render()};
   $('#xj',ov).onclick=()=>download('fuel-backup-'+today()+'.json',JSON.stringify(S),'application/json');
   $('#xc',ov).onclick=()=>{let c='date,slot,name,amount,kcal,protein,carbs,fat\n';Object.keys(S.log).sort().forEach(d=>S.log[d].forEach(e=>c+=[d,e.slot,'"'+String(e.name).replace(/"/g,'""')+'"','"'+(e.desc||'')+'"',r1(e.k),r1(e.p),r1(e.c),r1(e.f)].join(',')+'\n'));download('fuel-log.csv',c,'text/csv')};
   $('#ij',ov).onclick=()=>pickFile('.json',async f=>{try{const j=JSON.parse(await f.text());if(!j.settings||!j.foods)throw 0;if(!confirm('Replace ALL current data with this backup?'))return;S=Object.assign(def(),j);save();closeAll();render();toast('Restored')}catch(e){toast('Not a valid backup file')}});
@@ -767,7 +824,7 @@ function tickAll(){(S.log[date]||[]).forEach(e=>delete e.planned);save();render(
 function planBar(){const n=(S.log[date]||[]).filter(e=>e.planned).length;if(!n||date>today())return '';return `<button class="sm" style="width:100%;margin-bottom:12px" onclick="tickAll()">✓ Mark all ${n} planned items as eaten</button>`}
 function fitsCard(){
   if(date<today())return '';
-  const T=targets(),e=dayTotals(date),pl=plannedTotals(date),remK=T.kcal-e.k-pl.k,remP=T.p-e.p-pl.p;
+  const T=targets(),e=dayTotals(date),pl=plannedTotals(date),remK=budget(date)-e.k-pl.k,remP=T.p-e.p-pl.p;
   const favs=S.foods.filter(f=>f.fav);
   if(!favs.length)return `<div class="card muted">Star some foods in the Foods tab and I'll suggest the ones that fit what you have left today.</div>`;
   if(remK<60)return '';
@@ -892,7 +949,7 @@ function stepsCard(){
   else if(NATIVE&&hcState==='error')note=`<button class="sm" style="margin-top:8px" onclick="syncSteps(true)">Couldn't read steps. Retry</button>`;
   return `<div class="card"><div class="sh2"><b>Steps</b><span class="muted">${v.toLocaleString()} of ${goal.toLocaleString()}</span></div>
   <div class="bt" style="margin:4px 0 8px"><i style="width:${Math.min(100,v/goal*100)}%;background:${v>=goal?'var(--ac)':'#6db3e0'}"></i></div>
-  <div style="display:flex;gap:2px">${bars}</div>${note}</div>`;
+  <div style="display:flex;gap:2px">${bars}</div>${v?`<div class="muted" style="margin-top:6px">≈ ${r0(v*0.0004*kgNow())} kcal walked in total. Only the part above your usual ${baseSteps(date).toLocaleString()} steps (+${stepKcal(date)} kcal) is added to your budget, because your target already covers normal activity.</div>`:''}${note}</div>`;
 }
 function stepsSummary(dates){
   if(!Object.keys(S.steps).length)return '';
@@ -990,6 +1047,16 @@ async function updCheck(manual){
     }
   }catch(e){if(manual)toast('Update check failed: '+(e&&e.message||e))}
 }
+function updFooter(){
+  if(!NATIVE)return '';
+  const v=upd.ver?`Fuel ${esc(upd.ver.versionName)}`:'Fuel';
+  return `<div style="text-align:center;margin:16px 0 4px" class="muted">${v} · <a href="#" style="color:var(--ac)" onclick="event.preventDefault();updNow()">Check for update</a></div>`;
+}
+function updSetup(){
+  if(!NATIVE||updCfg().token)return '';
+  return `<div class="card"><b>Turn on in-app updates</b><div class="muted" style="margin:4px 0 8px">Add a read-only GitHub token once and Fuel can find and install new versions by itself.</div><button class="sm" onclick="settingsSheet()">Set up</button></div>`;
+}
+function updNow(){if(!updCfg().token){toast('Add your update token first');settingsSheet();return}updCheck(true)}
 function updBanner(){
   const l=upd.latest;if(!NATIVE||!l)return '';
   return `<div class="card" style="border-color:var(--ac)"><div class="sh2"><b>Update available · ${esc(l.tag.replace(/^v/,''))}</b></div>${l.notes?`<div class="muted" style="margin-bottom:8px">${esc(l.notes)}</div>`:''}<button class="pri" style="width:100%" id="updbtn" onclick="updInstall()"${upd.busy?' disabled':''}>${upd.busy?'Downloading…':'Download &amp; install'}</button></div>`;
@@ -1014,7 +1081,7 @@ render();
 if(!localStorage.getItem('fuel.seeded')&&!S.foods.length){
   fetch('foods-seed.json').then(r=>r.json()).then(a=>{S.foods=a;save();localStorage.setItem('fuel.seeded','1');render();toast(a.length+' starter foods loaded')}).catch(()=>{});
 }
-if(NATIVE){syncSteps(true);updCheck();document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncSteps();updCheck()}})}
+if(NATIVE){updInfo().then(()=>{if(!SH.length&&view==='today')render()});syncSteps(true);updCheck();document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncSteps();updCheck()}})}
 // Android home-screen shortcuts (long-press the app icon)
 (function(){
   const a=new URLSearchParams(location.search).get('action');if(!a)return;
