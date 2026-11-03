@@ -154,7 +154,7 @@ function pickFood(cb,opts={}){
   <input id="pq" placeholder="Search foods" autocomplete="off">
   <div class="chips" id="pt"></div>
   <div id="pl"></div>
-  <div class="g2" style="margin-top:10px"><button id="psc">📷 Scan barcode</button><button id="pqa">⚡ Quick add</button></div>
+  <div class="g2" style="margin-top:10px"><button id="psc">📷 Scan barcode</button><button id="plb">🏷 Scan label</button></div><button id="pqa" style="width:100%;margin-top:8px">⚡ Quick add</button>
   <button id="pnf" style="width:100%;margin-top:8px">+ Create new food</button>`);
   const tabs=[['fav','★ Favourites'],...S.cats.food.map(c=>['c:'+c.id,c.name]),['recent','Recent'],['all','All foods']];if(opts.meal)tabs.push(['meal','Meals']);
   const draw=()=>{
@@ -182,6 +182,7 @@ function pickFood(cb,opts={}){
   };
   $('#pq',ov).oninput=e=>{q=e.target.value;if(q&&tab!=='meal')tab='all';draw()};
   $('#psc',ov).onclick=()=>scanFlow(f=>qtySheet(f,cb));
+  $('#plb',ov).onclick=()=>labelFlow(f=>qtySheet(f,cb));
   $('#pnf',ov).onclick=()=>foodForm({},f=>qtySheet(f,cb));
   $('#pqa',ov).onclick=()=>quickAdd(cb);
   if(!S.foods.some(f=>f.fav)&&S.recent.length)tab='recent';
@@ -200,8 +201,8 @@ function quickAdd(cb){
 /* ---------- food form ---------- */
 function foodForm(f,onSave){
   const isNew=!f.id;
-  const basis=f.g===100||f.g==null&&isNew?'100':(f.g?'serve':(isNew?'100':'serve'));
-  const ov=sheet(`<h3>${isNew?'New food':'Edit food'}</h3>
+  const basis=f.basis||(f.g===100||f.g==null&&isNew?'100':(f.g?'serve':(isNew?'100':'serve')));
+  const ov=sheet(`<h3>${isNew?'New food':'Edit food'}</h3>${f.note?`<div class="card" style="margin:6px 0 4px;border-color:var(--ac)">${f.note}</div>`:''}
   <label>Name</label><input id="fn" value="${esc(f.name||'')}">
   <label>Brand (optional)</label><input id="fb" value="${esc(f.brand||'')}">
   <label>Nutrition values below are per</label>
@@ -263,6 +264,215 @@ async function barcode(code,onFood){
   foodForm({barcode:code,g:100},onFood);
 }
 
+/* ---------- nutrition label reader (photo -> text on the phone -> values) ---------- */
+/*label-start*/
+function parseLabel(lines){
+  const UNIT='(?:g|mg|ug|mcg|kj|kcal|cal|k\\)|kl|ki)';
+  const mapDigits=s=>s.replace(/[Oo]/g,'0').replace(/[IiLl|!]/g,'1').replace(/[Ss]/g,'5').replace(/B/g,'8').replace(/T/g,'7');
+  // split a line into word tokens with an x position (uses OCR word boxes when present)
+  const toks=ln=>{
+    if(ln.el&&ln.el.length)return ln.el.map(e=>({t:String(e.t),x:(e.l+e.r)/2,l:e.l,r:e.r}));
+    const parts=String(ln.t).split(/\s+/).filter(Boolean),tot=parts.join(' ').length||1,w=ln.r-ln.l;let off=0;
+    return parts.map(p=>{const l=ln.l+(off/tot)*w,r=ln.l+((off+p.length)/tot)*w;off+=p.length+1;return {t:p,x:(l+r)/2,l,r}});
+  };
+  // a token that looks like a number (with OCR slips), optional unit; returns {v,raw,unit} or null
+  const numTok=t0=>{
+    let t=t0.replace(/[¢©]/g,'g').replace(/[µμ]/g,'u').replace(/yg$/i,'ug');
+    const m=new RegExp('^\\(?([\\dOoIiLl|!SsBT.,]{1,7})\\s*('+UNIT+')?\\)?\\*{0,3}$','i').exec(t);
+    if(!m)return null;
+    const hasDigit=/\d/.test(m[1]),unit=m[2]?m[2].toLowerCase().replace(/^k\)$|^kl$|^ki$/,'kj'):'';
+    if(!hasDigit&&!(unit&&m[1].length>=2))return null;
+    if(!hasDigit&&/^[IiLl|!]$/.test(m[1]))return null;
+    let raw=mapDigits(m[1]).replace(',','.');
+    if(/^0\d+$/.test(raw))raw=raw[0]+'.'+raw.slice(1);
+    if(!/^\d+(\.\d+)?$/.test(raw.replace(/\.$/,'')))return null;
+    return {v:parseFloat(raw),raw:raw.replace(/\.$/,''),unit};
+  };
+  const ROWS=[
+    ['k',/^\W*(energy|calories?|kilojoules?)\b/i],
+    ['p',/^\W*protein/i],
+    ['sat',/^\W*(of which\s*)?(saturat|sat\.?\s*fat)/i],
+    ['f',/^\W*(total\s+fat|fat\W*,?\s*total|fat\b)/i],
+    ['c',/^\W*(total\s+carb|carbohydrate|carbs?\b)/i],
+    ['sug',/^\W*(of which\s*)?(total\s+)?sugars?/i],
+    ['fib',/^\W*(dietary\s+)?fib(re|er)/i],
+    ['na',/^\W*(sodium|salt)/i],
+  ];
+  const rows={};
+  const info=lines.map(ln=>({ln,text:String(ln.t||'').trim(),tk:toks(ln),y:(ln.tp+ln.b)/2,h:Math.max(1,ln.b-ln.tp)})).filter(i=>i.text);
+  const labelKey=i=>(ROWS.find(r=>r[1].test(i.text))||[])[0];
+  const numbersIn=(tk,minX)=>{
+    const vals=[];
+    for(let i=0;i<tk.length;i++){
+      if(minX!=null&&tk[i].x<=minX)continue;
+      const n=numTok(tk[i].t);if(!n)continue;
+      if(!n.unit&&tk[i+1]){const u=/^(kj|kcal|cal|g|mg|ug|mcg)$/i.exec(tk[i+1].t);if(u){n.unit=u[1].toLowerCase();i++}}
+      if(!n.unit&&tk[i+1]&&/^%/.test(tk[i+1].t))continue;
+      vals.push(Object.assign(n,{x:tk[i].x}));
+    }
+    return vals;
+  };
+  info.forEach(li=>{
+    const key=labelKey(li);if(!key||rows[key])return;
+    // where the label text ends: the right edge of the words before the first number
+    let labelRight=li.ln.l;
+    for(const t of li.tk){if(numTok(t.t))break;labelRight=Math.max(labelRight,t.r!=null?t.r:t.x)}
+    let vals=numbersIn(li.tk,labelRight);
+    info.forEach(o=>{
+      if(o===li||labelKey(o))return;
+      if(Math.abs(o.y-li.y)>0.45*Math.max(li.h,o.h))return;
+      vals=vals.concat(numbersIn(o.tk,labelRight));
+    });
+    vals.sort((a,b)=>a.x-b.x);
+    rows[key]={vals,y:li.y,text:li.text};
+  });
+  // columns: per-serving vs per-100 g
+  const all=lines.map(l=>String(l.t||'')).join('\n');
+  const hdr100=lines.find(l=>/100\s*(g|ml)/i.test(l.t)&&!/serv/i.test(l.t)&&!ROWS.some(r=>r[1].test(l.t)));
+  const hdrSrv=lines.find(l=>/serv(ing|e)/i.test(l.t)&&!/size\b/i.test(l.t)&&!ROWS.some(r=>r[1].test(l.t)));
+  const hx100=hdr100?(hdr100.l+hdr100.r)/2:null,hxSrv=hdrSrv?(hdrSrv.l+hdrSrv.r)/2:null;
+  const two=Object.values(rows).filter(r=>r.vals.length>=2);
+  const med=a=>{a=a.slice().sort((x,y)=>x-y);return a.length?a[a.length>>1]:null};
+  const cx0=two.length?med(two.map(r=>r.vals[0].x)):null,cx1=two.length?med(two.map(r=>r.vals[1].x)):null;
+  const servFirst=(hxSrv!=null&&hx100!=null)?hxSrv<hx100:true;
+  const onlyServ=/serv(ing|e)/i.test(all)&&!/100\s*(g|ml)/i.test(all);
+  const colName=i=>(servFirst?['srv','h']:['h','srv'])[i];
+  const out={srv:{},h:{}};
+  const put=(col,key,n,extra)=>{if(!out[col][key])out[col][key]=Object.assign({v:n.v,raw:n.raw,unit:n.unit},extra||{})};
+  Object.entries(rows).forEach(([key,r])=>{
+    const vals=r.vals;if(!vals.length)return;
+    let pick=vals;
+    if(key==='k'){
+      // energy: kJ and kcal cells may both be present
+      const kj=vals.filter(v=>v.unit==='kj'),kc=vals.filter(v=>v.unit==='kcal'||v.unit==='cal'),bare=vals.filter(v=>!v.unit);
+      const calWord=/^\W*calories?/i.test(r.text);
+      const kjs=kj.length?kj:(calWord?[]:bare.filter(v=>v.v>=150));
+      if(calWord)bare.forEach(v=>kc.push(v));
+      const cols=(arr,fn)=>{arr.slice(0,2).forEach((n,i)=>{const col=arr.length>=2?colName(i):(cx0!=null&&cx1!=null?colName(Math.abs(n.x-cx0)<=Math.abs(n.x-cx1)?0:1):(onlyServ?'srv':'h'));fn(col,n)})};
+      cols(kjs,(c,n)=>put(c,'kj',n));
+      cols(kc,(c,n)=>put(c,'kcal',n));
+      return;
+    }
+    pick=vals.filter(v=>!v.unit||/^(g|mg|ug|mcg)$/.test(v.unit));
+    pick.slice(0,2).forEach((n,i)=>{
+      let col;
+      if(pick.length>=2)col=colName(i);
+      else if(cx0!=null&&cx1!=null)col=colName(Math.abs(n.x-cx0)<=Math.abs(n.x-cx1)?0:1);
+      else if(hx100!=null&&hxSrv!=null)col=Math.abs(n.x-hx100)<=Math.abs(n.x-hxSrv)?'h':'srv';
+      else col=onlyServ?'srv':'h';
+      put(col,key,n);
+    });
+  });
+  // serving size and name, from the header or a "serving size" line
+  let servG=null,servLabel='';
+  const sl=lines.map(l=>String(l.t||'')).filter(t=>/serv(ing|e)/i.test(t)&&!/per\s*(pack|package|container)|servings?\s*per/i.test(t));
+  for(const t of sl){
+    const g=/(\d+(?:[.,]\d+)?)\s*(g|ml)\b/i.exec(t);
+    if(g){servG=parseFloat(g[1].replace(',','.'));const p=/\(([^)]{2,28})\)/.exec(t);
+      const before=/size[:\s]*([^(\d][^(]{1,18}?)\s*\(/i.exec(t);
+      servLabel=p&&!/\d+\s*(g|ml)/i.test(p[1])?p[1].trim():(before?before[1].trim():'');break}
+  }
+  // convert a column to kcal and macros, repairing missing decimal points against the energy figure
+  const warns=[],fixed=[];
+  const conv=(c)=>{
+    if(!c||!Object.keys(c).length)return null;
+    const r={};
+    if(c.kcal)r.k=c.kcal.v;else if(c.kj)r.k=c.kj.v/4.184;
+    ['p','f','c'].forEach(k=>{if(c[k])r[k]=c[k].v});
+    ['sat','sug','fib'].forEach(k=>{if(c[k])r[k]=c[k].v});
+    if(r.sat!=null&&r.f!=null&&r.sat>r.f&&c.sat&&!/\./.test(c.sat.raw)&&c.sat.v/10<=r.f)r.sat=c.sat.v/10;
+    if(r.sug!=null&&r.c!=null&&r.sug>r.c&&c.sug&&!/\./.test(c.sug.raw)&&c.sug.v/10<=r.c)r.sug=c.sug.v/10;
+    if(c.na)r.na=c.na.unit==='g'?c.na.v*1000:c.na.v;
+    const cand=k=>{
+      const n=c[k];if(!n)return [null];
+      const a=[n.v];
+      if(!/\./.test(n.raw)&&n.raw.length>=2)a.push(n.v/10);
+      const ok=a.filter(v=>v<=100);return ok.length?ok:[n.v/10];
+    };
+    const P=cand('p'),F=cand('f'),C=cand('c');
+    if(r.k&&(c.p||c.f||c.c)){
+      let best=null;
+      P.forEach(p=>F.forEach(f=>C.forEach(cc=>{
+        const e=Math.abs(r.k-(4*(p||0)+4*(cc||0)+9*(f||0)))/Math.max(r.k,1);
+        const pen=(p!=null&&p!==(c.p&&c.p.v)?.01:0)+(f!=null&&f!==(c.f&&c.f.v)?.01:0)+(cc!=null&&cc!==(c.c&&c.c.v)?.01:0);
+        const s=e+pen;if(!best||s<best.s)best={s,p,f,c:cc,e};
+      })));
+      if(best){
+        [['p',best.p],['f',best.f],['c',best.c]].forEach(([k,v])=>{if(v!=null&&c[k]&&v!==c[k].v){fixed.push(k);}if(v!=null)r[k]=v});
+        r._err=best.e;
+      }
+    }else{
+      ['p','f','c'].forEach((k,i)=>{const v=[P,F,C][i][0];if(v!=null)r[k]=v});
+    }
+    return r;
+  };
+  const H=conv(out.h),Sv=conv(out.srv);
+  const have=o=>o&&((o.k!=null)+(o.p!=null)+(o.f!=null)+(o.c!=null)>=3);
+  const res={ok:false,servingG:servG,servLabel,warns};
+  const sc=(o,m)=>{const q={};['k','p','f','c','sat','sug','fib','na'].forEach(k=>{if(o[k]!=null)q[k]=o[k]*m});return q};
+  let base=null,basis='100';
+  if(have(H)){base=Object.assign({},H);
+    if(Sv&&servG){const m=100/servG,s2=sc(Sv,m);['k','p','f','c','sat','sug','fib','na'].forEach(k=>{if(base[k]==null&&s2[k]!=null)base[k]=s2[k]})}}
+  else if(have(Sv)){
+    if(servG){base=sc(Sv,100/servG);}else{base=Object.assign({},Sv);basis='serve'}
+  }else if(H||Sv){base=Object.assign({},H||Sv)}
+  if(!base){return res}
+  const r1=v=>v==null?null:Math.round(v*10)/10;
+  res.k=base.k!=null?Math.round(base.k):null;res.p=r1(base.p);res.c=r1(base.c);res.f=r1(base.f);
+  res.sat=r1(base.sat);res.sug=r1(base.sug);res.fib=r1(base.fib);res.na=base.na!=null?Math.round(base.na):null;
+  res.basis=basis;
+  res.ok=res.k!=null||(res.p!=null&&res.c!=null&&res.f!=null);
+  if(res.k!=null&&res.p!=null&&res.c!=null&&res.f!=null){
+    const est=4*res.p+4*res.c+9*res.f;
+    if(Math.abs(res.k-est)/Math.max(res.k,1)>0.2)warns.push("Energy doesn't match the protein, carbs and fat. Check the numbers against the pack.");
+  }
+  const miss=['k','p','c','f'].filter(k=>res[k]==null);
+  if(miss.length)warns.push('Could not read: '+miss.map(k=>({k:'energy',p:'protein',c:'carbs',f:'fat'})[k]).join(', ')+'.');
+  if(fixed.length)warns.push('Fixed a missing decimal point in: '+[...new Set(fixed)].map(k=>({p:'protein',c:'carbs',f:'fat'})[k]).join(', ')+'.');
+  if(basis==='serve')warns.push('Values are per serving (serving size not found).');
+  return res;
+}
+/*label-end*/
+const LO=()=>(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.LabelOcr)||null;
+async function imgToB64(file,max=2400){
+  const bmp=await createImageBitmap(file);
+  const sc=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);
+  cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+  return cv.toDataURL('image/jpeg',0.92).split(',')[1];
+}
+function labelFlow(onFood){
+  const lo=LO(),ok=NATIVE&&lo;
+  const ov=sheet(`<h3>Scan nutrition label</h3>
+  <div class="muted">Lay the pack flat with the nutrition panel filling the frame, text sharp and well lit. The photo is read on this phone and is not stored or sent anywhere.</div>
+  ${ok?`<div class="g2" style="margin-top:10px"><button class="pri" id="lc">📷 Take photo</button><button id="lg">🖼 Choose photo</button></div>`:`<div class="warn" style="margin-top:10px">Reading labels works in the Android app.</div>`}
+  <div class="muted" id="ls" style="margin-top:10px"></div>`);
+  const run=async file=>{
+    const st=$('#ls',ov);
+    try{
+      st.textContent='Reading the label…';
+      const r=await lo.recognize({base64:await imgToB64(file)});
+      const res=parseLabel(r.lines||[]);
+      if(!res.ok){st.innerHTML='<span class="warn">Could not find a nutrition table in that photo. Try again closer, flatter and brighter.</span>';return}
+      closeSheet(ov);labelResult(res,onFood);
+    }catch(e){st.innerHTML='<span class="warn">Could not read that photo ('+esc(e&&e.message||e)+').</span>'}
+  };
+  const pick=cap=>{
+    const i=document.createElement('input');i.type='file';i.accept='image/*';if(cap)i.setAttribute('capture','environment');
+    i.onchange=()=>{const f=i.files&&i.files[0];if(f)run(f)};i.click();
+  };
+  if(ok){$('#lc',ov).onclick=()=>pick(true);$('#lg',ov).onclick=()=>pick(false)}
+}
+function labelResult(res,onFood){
+  const per=res.basis==='100'?'per 100 g':'per serving';
+  const bits=[res.k!=null?res.k+' kcal':null,res.p!=null?'protein '+res.p:null,res.c!=null?'carbs '+res.c:null,res.f!=null?'fat '+res.f:null].filter(Boolean).join(' · ');
+  const extra=[res.sat!=null?'saturated fat '+res.sat+' g':'',res.sug!=null?'sugars '+res.sug+' g':'',res.fib!=null?'fibre '+res.fib+' g':'',res.na!=null?'sodium '+res.na+' mg':''].filter(Boolean).join(', ');
+  const note=`<b>Read from the label (${per})</b><div class="muted">${esc(bits)}${extra?'<br>'+esc(extra):''}${res.servingG?'<br>Serving: '+esc(res.servLabel||'1 serving')+' = '+res.servingG+' g':''}</div>${res.warns.map(w=>`<div class="warn" style="margin-top:4px">${esc(w)}</div>`).join('')}<div class="muted" style="margin-top:4px">Check these against the pack, add a name, then save.</div>`;
+  const h=res.basis==='100';
+  foodForm({name:'',g:h?100:null,basis:h?'100':'serve',defG:h?(res.servingG||null):null,label:res.servLabel||'serving',k:res.k,p:res.p,c:res.c,f:res.f,note},onFood);
+}
+
+
 /* ---------- TODAY ---------- */
 function applyRecurring(d){
   let ch=false;
@@ -315,7 +525,7 @@ function foodListHTML(){
   return `<div class="card">${l.map(f=>`<div class="row" onclick="foodForm(S.foods.find(x=>x.id==='${f.id}'),()=>render())"><div style="flex:1">${esc(f.name)}<div class="muted">${esc(f.brand||'')} ${f.g?'per '+f.g+' g':'per '+esc(f.label||'serving')} · P${r0(f.p)} C${r0(f.c)} F${r0(f.f)}</div></div><b>${r0(f.k)}</b><button class="star ${f.fav?'on':''}" onclick="event.stopPropagation();toggleFav('${f.id}')">${f.fav?'★':'☆'}</button></div>`).join('')||'<div class="muted">No matches</div>'}</div>${total>80?`<div class="muted">Showing 80 of ${total}. Search to narrow.</div>`:''}`;
 }
 function vFoods(){return `<h2>Foods <span class="muted">${S.foods.length}</span></h2>
-  <div class="bar"><input id="fq" placeholder="Search" value="${esc(foodQ)}" oninput="foodQ=this.value;$('#fl').innerHTML=foodListHTML()"><button class="sm" onclick="foodForm({g:100},()=>render())">+ New</button><button class="sm" onclick="scanFlow(f=>foodForm(f,()=>render()))">📷</button></div>
+  <div class="bar"><input id="fq" placeholder="Search" value="${esc(foodQ)}" oninput="foodQ=this.value;$('#fl').innerHTML=foodListHTML()"><button class="sm" onclick="foodForm({g:100},()=>render())">+ New</button><button class="sm" onclick="scanFlow(f=>foodForm(f,()=>render()))">📷</button><button class="sm" onclick="labelFlow(()=>render())">🏷</button></div>
   <div class="chips"><button class="chip ${foodCat?'':'on'}" onclick="foodCat='';render()">All</button><button class="chip ${foodCat==='fav'?'on':''}" onclick="setFoodCat('fav')">★ Favourites</button>${catChips('food',foodCat,'setFoodCat')}<button class="chip" onclick="manageCats('food')">⚙ Categories</button></div><div id="fl">${foodListHTML()}</div>`}
 function toggleFav(id){const f=S.foods.find(x=>x.id===id);f.fav=!f.fav;save();$('#fl').innerHTML=foodListHTML()}
 

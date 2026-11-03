@@ -36,6 +36,9 @@ if "kotlin-android" not in s:
 s += '''
 
 android {
+    defaultConfig {
+        ndk { abiFilters "arm64-v8a" }
+    }
     signingConfigs {
         debug {
             storeFile file("$rootDir/fuel.keystore")
@@ -54,6 +57,7 @@ android {
 dependencies {
     implementation "androidx.health.connect:connect-client:1.1.0-alpha07"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
+    implementation "com.google.mlkit:text-recognition:16.0.1"
 }
 '''
 build_no = os.environ.get('GITHUB_RUN_NUMBER', '1')
@@ -70,7 +74,7 @@ assert mains, 'MainActivity.java not found'
 main = mains[0]
 pkg = re.search(r'package\s+([\w.]+);', rd(main)).group(1)
 dst = os.path.dirname(main)
-for name in ('HealthStepsPlugin.kt', 'UpdaterPlugin.kt'):
+for name in ('HealthStepsPlugin.kt', 'UpdaterPlugin.kt', 'LabelOcrPlugin.kt'):
     kt = rd(f'native/{name}')
     kt = re.sub(r'^package\s+[\w.]+', f'package {pkg}', kt, count=1, flags=re.M)
     wr(os.path.join(dst, name), kt)
@@ -84,6 +88,7 @@ public class MainActivity extends BridgeActivity {{
     public void onCreate(Bundle savedInstanceState) {{
         registerPlugin(HealthStepsPlugin.class);
         registerPlugin(UpdaterPlugin.class);
+        registerPlugin(LabelOcrPlugin.class);
         super.onCreate(savedInstanceState);
     }}
 }}
