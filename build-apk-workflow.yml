@@ -5,6 +5,9 @@ on:
   push:
     branches: [main, master]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -45,56 +48,18 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
-      - name: Inspect APK
-        run: |
-          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
-          APK=android/app/build/outputs/apk/debug/app-debug.apk
-          echo "== signature =="; $BT/apksigner verify --verbose --print-certs $APK || true
-          echo "== badging =="; $BT/aapt2 dump badging $APK | grep -E "^(package|sdkVersion|targetSdk|native-code|uses-permission|application-label)" || true
-          echo "== manifest =="; $BT/aapt2 dump xmltree --file AndroidManifest.xml $APK | head -120 || true
-          echo "== zip =="; unzip -l $APK | grep -E "lib/|classes" || true
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Fuel-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Build lite APK (no Health Connect, for install diagnosis)
-        working-directory: android
+      - name: Publish release (phone-friendly download)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python3 - <<'PY'
-          import re
-          p='app/src/main/AndroidManifest.xml'
-          s=open(p).read()
-          s=re.sub(r'<uses-permission android:name="android.permission.health.READ_STEPS" />','',s)
-          s=re.sub(r'<queries>.*?</queries>','',s,flags=re.S)
-          s=re.sub(r'<activity-alias.*?</activity-alias>','',s,flags=re.S)
-          s=re.sub(r'<intent-filter>\s*<action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />\s*</intent-filter>','',s)
-          open(p,'w').write(s)
-          g='app/build.gradle'
-          t=open(g).read().replace('applicationId "com.dilhan.fuel"','applicationId "com.dilhan.fuellite"')
-          open(g,'w').write(t)
-          PY
-          ./gradlew assembleDebug --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/app-lite.apk
-
-      - name: Upload lite APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Fuel-lite-APK
-          path: android/app/build/outputs/apk/debug/app-lite.apk
-
-      - name: Build test APK (lite, standard debug key)
-        working-directory: android
-        run: |
-          keytool -genkeypair -keystore $HOME/test.keystore -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          sed -i 's#storeFile file("$rootDir/fuel.keystore")#storeFile file("'$HOME'/test.keystore")#; s#storePassword "fuelfuel"#storePassword "android"#; s#keyAlias "fuel"#keyAlias "androiddebugkey"#; s#keyPassword "fuelfuel"#keyPassword "android"#; s#com.dilhan.fuellite#com.dilhan.fueltest#' app/build.gradle
-          ./gradlew assembleDebug --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/app-test.apk
-
-      - name: Upload test APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Fuel-test-APK
-          path: android/app/build/outputs/apk/debug/app-test.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk Fuel.apk
+          gh release create "v1.${{ github.run_number }}" Fuel.apk \
+            --title "Fuel 1.${{ github.run_number }}" \
+            --notes "${{ github.event.head_commit.message }}" \
+            --latest

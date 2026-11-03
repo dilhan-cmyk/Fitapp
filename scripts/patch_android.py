@@ -56,6 +56,10 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
 }
 '''
+build_no = os.environ.get('GITHUB_RUN_NUMBER', '1')
+s, n1 = re.subn(r'versionCode\s+\d+', f'versionCode {build_no}', s, count=1)
+s, n2 = re.subn(r'versionName\s+"[^"]*"', f'versionName "1.{build_no}"', s, count=1)
+print(f'version -> 1.{build_no} (code {build_no}); patched {n1}+{n2}')
 wr(p, s)
 shutil.copy('fuel.keystore', f'{A}/fuel.keystore')
 
