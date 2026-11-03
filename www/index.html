@@ -280,7 +280,7 @@ function vToday(){
   if(date>=today())applyRecurring(date);
   const t=dayTotals(date),pt=plannedTotals(date),s=targets(),left=s.kcal-t.k,pct=Math.min(1,t.k/(s.kcal||1)),R=52,C=2*Math.PI*R;
   const ring=`<svg width="130" height="130" viewBox="0 0 130 130"><circle cx="65" cy="65" r="${R}" fill="none" stroke="#284866" stroke-width="12"/><circle cx="65" cy="65" r="${R}" fill="none" stroke="${left<0?'#e0948a':'#a9c08a'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*pct} ${C}" transform="rotate(-90 65 65)"/><text x="65" y="64" text-anchor="middle" class="rn">${r0(Math.abs(left))}</text><text x="65" y="82" text-anchor="middle" class="rl">${left<0?'kcal over':'kcal left'}</text></svg>`;
-  return `<h2>Fuel <span class="sp"></span><button class="sm" onclick="settingsSheet()">⚙ Settings</button></h2>
+  return `<h2>Fuel <span class="sp"></span><button class="sm" onclick="settingsSheet()">⚙ Settings</button></h2>${updBanner()}
   <div class="dn"><button onclick="date=addDays(date,-1);render()">‹</button><b>${dateLabel(date)}</b><button onclick="date=addDays(date,1);render()">›</button></div>
   <div class="card"><div class="top">${ring}<div style="flex:1"><div class="muted">Eaten ${r0(t.k)} of ${s.kcal} kcal${pt.k?` · +${r0(pt.k)} planned`:''}</div>${macroBar('Protein'+(s.dyn?' · '+S.settings.protPerKg+' g/kg':''),t.p,s.p,COL.p)}${macroBar('Carbs',t.c,s.c,COL.c)}${macroBar('Fat',t.f,s.f,COL.f)}</div></div></div>
   ${planBar()}${trainCard()}${stepsCard()}${fitsCard()}
@@ -463,7 +463,18 @@ function settingsSheet(){
   <div class="g2"><button id="xj">Backup (JSON)</button><button id="ij">Restore backup</button></div>
   <button style="width:100%;margin-top:8px" id="xc">Export food log (CSV)</button>
   <div class="muted" style="margin-top:10px">Everything is stored on this phone only. Make a backup now and then, especially before clearing browser data or changing phones.</div>
+  ${NATIVE?`<h3 style="margin-top:20px">App updates</h3>
+  <div class="muted" id="uv">Checking version…</div>
+  <label>GitHub access token (read-only; stays on this phone only)</label>
+  <input id="utk" type="password" autocomplete="off" placeholder="github_pat_…" value="${esc(updCfg().token||'')}">
+  <div class="g2" style="margin-top:8px"><button id="usv">Save token</button><button class="pri" id="uck">Check for update</button></div>
+  <div class="muted" style="margin-top:6px">One-off setup, in GitHub on your phone: Settings → Developer settings → Fine-grained tokens → Generate new token. Repository access: only Fitapp. Permissions: Contents → Read-only. Paste it above. Fuel then checks for new versions whenever you open it.</div>`:''}
   <button class="dng" style="width:100%;margin-top:12px" id="clr">Erase all data</button>`);
+  if(NATIVE){
+    updInfo().then(v=>{const e=$('#uv',ov);if(e)e.textContent=v?`Installed: Fuel ${v.versionName} (build ${v.versionCode})`:'Version unknown'});
+    $('#usv',ov).onclick=()=>{const c=updCfg();c.token=$('#utk',ov).value.trim();c.last=0;updSave(c);toast(c.token?'Token saved':'Token cleared');if(c.token)updCheck(true)};
+    $('#uck',ov).onclick=()=>{const c=updCfg();c.token=$('#utk',ov).value.trim()||c.token;updSave(c);updCheck(true)};
+  }
   const upd=()=>{$('#tm',ov).textContent=`Macros add up to ${r0(num($('#tp',ov).value)*4+num($('#tc',ov).value)*4+num($('#tf',ov).value)*9)} kcal`};
   ['tk','tp','tc','tf'].forEach(i=>$('#'+i,ov).oninput=upd);upd();
   $('#tcalc',ov).onclick=()=>{$('#tk',ov).value=r0(num($('#tp',ov).value)*4+num($('#tc',ov).value)*4+num($('#tf',ov).value)*9);upd()};
@@ -739,6 +750,53 @@ function manageCats(type){
   };draw();
 }
 
+/* ---------- app updates (Android app only) ---------- */
+// The access token lives in its own localStorage key, so it never ends up in a backup file.
+const UP=()=>(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Updater)||null;
+const UPK='fuel.upd';
+const upd={ver:null,latest:null,busy:false};
+function updCfg(){try{return JSON.parse(localStorage.getItem(UPK)||'{}')}catch(e){return {}}}
+function updSave(c){try{localStorage.setItem(UPK,JSON.stringify(c))}catch(e){}}
+async function updInfo(){const u=UP();if(!NATIVE||!u)return null;try{upd.ver=await u.info()}catch(e){}return upd.ver}
+async function updCheck(manual){
+  const u=UP();if(!NATIVE||!u)return;
+  const c=updCfg();
+  if(!c.token){if(manual)toast('Add your update token first');return}
+  if(!manual&&c.last&&Date.now()-c.last<3600e3)return;
+  try{
+    if(!upd.ver)await updInfo();
+    const r=await u.check({token:c.token});
+    c.last=Date.now();updSave(c);
+    const n=+((/^v?\d+\.(\d+)/.exec(r.tag||'')||[])[1])||0;
+    const had=!!upd.latest;
+    if(upd.ver&&n>upd.ver.versionCode&&r.assetId){
+      upd.latest={tag:r.tag,n,notes:String(r.notes||'').split('\n')[0].slice(0,140),assetId:String(r.assetId)};
+      if(manual)toast('Update available: '+r.tag);
+      render();
+    }else{
+      upd.latest=null;
+      if(manual)toast('You are up to date'+(upd.ver?' ('+upd.ver.versionName+')':''));
+      if(had)render();
+    }
+  }catch(e){if(manual)toast('Update check failed: '+(e&&e.message||e))}
+}
+function updBanner(){
+  const l=upd.latest;if(!NATIVE||!l)return '';
+  return `<div class="card" style="border-color:var(--ac)"><div class="sh2"><b>Update available · ${esc(l.tag.replace(/^v/,''))}</b></div>${l.notes?`<div class="muted" style="margin-bottom:8px">${esc(l.notes)}</div>`:''}<button class="pri" style="width:100%" id="updbtn" onclick="updInstall()"${upd.busy?' disabled':''}>${upd.busy?'Downloading…':'Download &amp; install'}</button></div>`;
+}
+async function updInstall(){
+  const u=UP(),l=upd.latest,c=updCfg();if(!u||!l||upd.busy)return;
+  upd.busy=true;render();
+  let h=null;
+  try{
+    h=await u.addListener('progress',e=>{const b=document.getElementById('updbtn');if(b)b.textContent='Downloading… '+e.pct+'%'});
+    const r=await u.install({token:c.token,assetId:l.assetId});
+    if(r&&r.needsPermission)toast('Allow installs from Fuel, come back, then tap again');
+  }catch(e){toast('Update failed: '+(e&&e.message||e))}
+  try{if(h)h.remove()}catch(e){}
+  upd.busy=false;render();
+}
+
 /* ---------- boot ---------- */
 if('serviceWorker' in navigator){if(NATIVE)navigator.serviceWorker.getRegistrations().then(r=>r.forEach(x=>x.unregister())).catch(()=>{});else navigator.serviceWorker.register('sw.js').catch(()=>{})}
 render();
@@ -746,7 +804,7 @@ render();
 if(!localStorage.getItem('fuel.seeded')&&!S.foods.length){
   fetch('foods-seed.json').then(r=>r.json()).then(a=>{S.foods=a;save();localStorage.setItem('fuel.seeded','1');render();toast(a.length+' starter foods loaded')}).catch(()=>{});
 }
-if(NATIVE){syncSteps(true);document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncSteps()})}
+if(NATIVE){syncSteps(true);updCheck();document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncSteps();updCheck()}})}
 // Android home-screen shortcuts (long-press the app icon)
 (function(){
   const a=new URLSearchParams(location.search).get('action');if(!a)return;

@@ -70,9 +70,10 @@ assert mains, 'MainActivity.java not found'
 main = mains[0]
 pkg = re.search(r'package\s+([\w.]+);', rd(main)).group(1)
 dst = os.path.dirname(main)
-kt = rd('native/HealthStepsPlugin.kt')
-kt = re.sub(r'^package\s+[\w.]+', f'package {pkg}', kt, count=1, flags=re.M)
-wr(os.path.join(dst, 'HealthStepsPlugin.kt'), kt)
+for name in ('HealthStepsPlugin.kt', 'UpdaterPlugin.kt'):
+    kt = rd(f'native/{name}')
+    kt = re.sub(r'^package\s+[\w.]+', f'package {pkg}', kt, count=1, flags=re.M)
+    wr(os.path.join(dst, name), kt)
 wr(main, f'''package {pkg};
 
 import android.os.Bundle;
@@ -82,6 +83,7 @@ public class MainActivity extends BridgeActivity {{
     @Override
     public void onCreate(Bundle savedInstanceState) {{
         registerPlugin(HealthStepsPlugin.class);
+        registerPlugin(UpdaterPlugin.class);
         super.onCreate(savedInstanceState);
     }}
 }}
@@ -116,7 +118,24 @@ if 'READ_STEPS' not in s:
         </activity-alias>'''
     assert '</activity>' in s
     s = s.replace('</activity>', rationale, 1)
+if 'REQUEST_INSTALL_PACKAGES' not in s:
+    s = s.replace('<application', '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <application', 1)
+    provider = '''        <provider
+            android:name=".UpdateFileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/fuel_update_paths" />
+        </provider>
+    '''
+    assert '</application>' in s
+    s = s.replace('</application>', provider + '</application>', 1)
 wr(p, s)
+os.makedirs(f'{A}/app/src/main/res/xml', exist_ok=True)
+wr(f'{A}/app/src/main/res/xml/fuel_update_paths.xml',
+   '<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\n    <cache-path name="update" path="update/" />\n</paths>\n')
 
 # 6. App icon (best effort; never fails the build)
 step('icons')
