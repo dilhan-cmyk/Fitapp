@@ -166,7 +166,7 @@ function pickFood(cb,opts={}){
   <input id="pq" placeholder="Search foods" autocomplete="off">
   <div class="chips" id="pt"></div>
   <div id="pl"></div>
-  <div class="g2" style="margin-top:10px"><button id="psc">📷 Scan barcode</button><button id="plb">🏷 Scan label</button></div><button id="pqa" style="width:100%;margin-top:8px">⚡ Quick add</button>
+  <div class="g2" style="margin-top:10px"><button id="psc">📷 Scan barcode</button><button id="plb">🏷 Scan label</button></div><button id="pweb" style="width:100%;margin-top:8px">🌐 Search online</button><button id="pqa" style="width:100%;margin-top:8px">⚡ Quick add</button>
   <button id="pnf" style="width:100%;margin-top:8px">+ Create new food</button>`);
   const tabs=[['recent','🕘 Recent'],['fav','★ Favourites'],...S.cats.food.map(c=>['c:'+c.id,c.name]),['all','All foods']];if(opts.meal)tabs.push(['meal','Meals']);
   const draw=()=>{
@@ -185,7 +185,7 @@ function pickFood(cb,opts={}){
       const total=list.length;list=list.slice(0,60);
       const lu=tab==='recent'&&!q?lastUse():{};
       html=list.map(f=>`<div class="row" data-f="${f.id}"><div>${esc(f.name)}<div class="muted">${esc(f.brand||'')} ${f.g?'per '+f.g+' g':'per '+esc(f.label||'serving')} · P${r0(f.p)} C${r0(f.c)} F${r0(f.f)}${lu[f.id]?' · last: '+esc(lu[f.id].desc||''):''}</div></div><b>${r0(f.k)}</b></div>`).join('');
-      if(!html)html=`<div class="muted">${q?'No match. Try All foods, scan, or create it.':tab==='fav'?'No favourites yet. Star foods in the Foods tab.':tab==='recent'?'Foods you add will show up here.':'Nothing here yet.'}</div>`;
+      if(!html)html=`<div class="muted">${q?'No match in your foods. Tap Search online below.':tab==='fav'?'No favourites yet. Star foods in the Foods tab.':tab==='recent'?'Foods you add will show up here.':'Nothing here yet.'}</div>`;
       if(total>60)html+=`<div class="muted">Showing 60 of ${total}. Keep typing to narrow.</div>`;
     }
     $('#pl',ov).innerHTML=html;
@@ -196,6 +196,7 @@ function pickFood(cb,opts={}){
   $('#pq',ov).oninput=e=>{q=e.target.value;if(q&&tab!=='meal')tab='all';draw()};
   $('#psc',ov).onclick=()=>scanFlow(f=>qtySheet(f,cb));
   $('#plb',ov).onclick=()=>labelFlow(f=>qtySheet(f,cb));
+  $('#pweb',ov).onclick=()=>onlineSearch($('#pq',ov).value.trim(),f=>qtySheet(f,cb));
   $('#pnf',ov).onclick=()=>foodForm({},f=>qtySheet(f,cb));
   $('#pqa',ov).onclick=()=>quickAdd(cb);
   if(!recentFoods().length)tab=S.foods.some(f=>f.fav)?'fav':'all';
@@ -275,6 +276,49 @@ async function barcode(code,onFood){
     toast('Not in Open Food Facts. Enter it manually.');
   }catch(e){toast('Offline or lookup failed. Enter it manually.')}
   foodForm({barcode:code,g:100},onFood);
+}
+
+
+/* ---------- online food search (Open Food Facts) ---------- */
+function offFood(p){
+  const n=p.nutriments||{};let k=n['energy-kcal_100g'];if(k==null&&n['energy_100g']!=null)k=n['energy_100g']/4.184;
+  if(!p.product_name||!(k>0))return null;
+  return{name:p.product_name,brand:(p.brands||'').split(',')[0].trim(),g:100,defG:num(p.serving_quantity)||null,label:'serving',k:r0(k),p:r1(n.proteins_100g||0),c:r1(n.carbohydrates_100g||0),f:r1(n.fat_100g||0),barcode:p.code||''};
+}
+async function offSearch(q){
+  const base='https://world.openfoodfacts.org/cgi/search.pl?search_simple=1&action=process&json=1&page_size=24&fields=product_name,brands,nutriments,serving_quantity,code&search_terms='+encodeURIComponent(q);
+  const get=async u=>{const ac=new AbortController(),t=setTimeout(()=>ac.abort(),12000);try{const r=await fetch(u,{signal:ac.signal});return (await r.json()).products||[]}finally{clearTimeout(t)}};
+  let au=[],all=[];
+  try{au=await get(base+'&tagtype_0=countries&tag_contains_0=contains&tag_0=australia')}catch(e){}
+  if(au.length<8)all=await get(base);
+  const seen=new Set(),out=[];
+  [...au,...all].forEach(p=>{const x=offFood(p);if(!x)return;const key=(x.name+'|'+x.brand+'|'+x.k).toLowerCase();if(seen.has(key))return;seen.add(key);out.push(x)});
+  return out;
+}
+function googleIt(q){
+  const url='https://www.google.com/search?q='+encodeURIComponent(q+' nutrition per 100g');
+  try{window.open(url,'_system')}catch(e){location.href=url}
+}
+function onlineSearch(q0,cb){
+  const ov=sheet(`<h3>Search online</h3>
+  <div class="bar"><input id="oq" placeholder="e.g. pork dumplings" value="${esc(q0||'')}" autocomplete="off"><button class="pri sm" id="og">Search</button></div>
+  <div class="muted">Searches the Open Food Facts database of packaged foods. Tap a result to check it and add it to your foods.</div>
+  <div id="ol" style="margin-top:8px"></div>
+  <button style="width:100%;margin-top:10px" id="ogo">🔎 Search Google instead</button>`);
+  let res=[],seq=0;
+  const run=async()=>{
+    const q=$('#oq',ov).value.trim();if(!q)return;
+    const my=++seq,box=$('#ol',ov);box.innerHTML='<div class="muted">Searching…</div>';
+    try{
+      res=await offSearch(q);if(my!==seq)return;
+      box.innerHTML=res.length?res.map((x,i)=>`<div class="row" data-i="${i}"><div style="flex:1">${esc(x.name)}<div class="muted">${esc(x.brand)} per 100 g · P${r0(x.p)} C${r0(x.c)} F${r0(x.f)}</div></div><b>${r0(x.k)}</b></div>`).join(''):'<div class="muted">Nothing found. Try a simpler word, or search Google below and enter it by hand.</div>';
+      box.querySelectorAll('[data-i]').forEach(r=>r.onclick=()=>{const x=res[+r.dataset.i];foodForm(Object.assign({},x),cb)});
+    }catch(e){if(my===seq)box.innerHTML='<div class="warn">Could not search (offline or the service is busy). Try again in a moment.</div>'}
+  };
+  $('#og',ov).onclick=run;
+  $('#oq',ov).onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();run()}};
+  $('#ogo',ov).onclick=()=>googleIt($('#oq',ov).value.trim()||q0||'');
+  if(q0)run();else setTimeout(()=>$('#oq',ov).focus(),50);
 }
 
 /* ---------- nutrition label reader (photo -> text on the phone -> values) ---------- */
@@ -594,7 +638,7 @@ function foodListHTML(){
   return `<div class="card">${l.map(f=>`<div class="row" onclick="foodForm(S.foods.find(x=>x.id==='${f.id}'),()=>render())"><div style="flex:1">${esc(f.name)}<div class="muted">${esc(f.brand||'')} ${f.g?'per '+f.g+' g':'per '+esc(f.label||'serving')} · P${r0(f.p)} C${r0(f.c)} F${r0(f.f)}</div></div><b>${r0(f.k)}</b><button class="star ${f.fav?'on':''}" onclick="event.stopPropagation();toggleFav('${f.id}')">${f.fav?'★':'☆'}</button></div>`).join('')||'<div class="muted">No matches</div>'}</div>${total>80?`<div class="muted">Showing 80 of ${total}. Search to narrow.</div>`:''}`;
 }
 function vFoods(){return `<h2>Foods <span class="muted">${S.foods.length}</span></h2>
-  <div class="bar"><input id="fq" placeholder="Search" value="${esc(foodQ)}" oninput="foodQ=this.value;$('#fl').innerHTML=foodListHTML()"><button class="sm" onclick="foodForm({g:100},()=>render())">+ New</button><button class="sm" onclick="scanFlow(f=>foodForm(f,()=>render()))">📷</button><button class="sm" onclick="labelFlow(()=>render())">🏷</button></div>
+  <div class="bar"><input id="fq" placeholder="Search" value="${esc(foodQ)}" oninput="foodQ=this.value;$('#fl').innerHTML=foodListHTML()"><button class="sm" onclick="foodForm({g:100},()=>render())">+ New</button><button class="sm" onclick="scanFlow(f=>foodForm(f,()=>render()))">📷</button><button class="sm" onclick="labelFlow(()=>render())">🏷</button><button class="sm" onclick="onlineSearch($('#fq').value.trim(),()=>render())">🌐</button></div>
   <div class="chips"><button class="chip ${foodCat?'':'on'}" onclick="foodCat='';render()">All</button><button class="chip ${foodCat==='recent'?'on':''}" onclick="setFoodCat('recent')">🕘 Recent</button><button class="chip ${foodCat==='fav'?'on':''}" onclick="setFoodCat('fav')">★ Favourites</button>${catChips('food',foodCat,'setFoodCat')}<button class="chip" onclick="manageCats('food')">⚙ Categories</button></div><div id="fl">${foodListHTML()}</div>`}
 function toggleFav(id){const f=S.foods.find(x=>x.id===id);f.fav=!f.fav;save();$('#fl').innerHTML=foodListHTML()}
 
