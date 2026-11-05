@@ -137,9 +137,21 @@ function snap(food,val){
   const unit=food.g?`${r1(val)} g`:`${r1(val)} × ${food.label||'serving'}`;
   return {foodId:food.id,name:food.name+(food.brand?` (${food.brand})`:''),desc:unit,k:food.k*mult,p:food.p*mult,f:food.f*mult,c:food.c*mult};
 }
+// Foods you have used lately, newest first: the saved recents plus everything in your food log.
+function lastUse(){
+  const m={};Object.keys(S.log).sort().reverse().forEach(d=>(S.log[d]||[]).slice().reverse().forEach(e=>{if(e.foodId&&!m[e.foodId])m[e.foodId]={d,desc:e.desc,amt:parseFloat(e.desc)}}));
+  return m;
+}
+function recentFoods(){
+  const lu=lastUse(),ids=[];
+  const add=id=>{if(id&&!ids.includes(id)&&S.foods.some(f=>f.id===id))ids.push(id)};
+  S.recent.forEach(add);
+  Object.keys(lu).sort((a,b)=>lu[a].d<lu[b].d?1:-1).forEach(add);
+  return ids.slice(0,60).map(id=>S.foods.find(f=>f.id===id));
+}
 function qtySheet(food,cb){
   const ov=sheet(`<h3>${esc(food.name)}</h3><div class="muted">${esc(food.brand||'')} · per ${food.g?food.g+' g':'1 '+esc(food.label||'serving')}: ${r0(food.k)} kcal, P${r1(food.p)} C${r1(food.c)} F${r1(food.f)}</div>
-  <label>${food.g?'Amount (grams)':'Number of '+esc(food.label||'servings')}</label><input id="qv" type="number" inputmode="decimal" step="any" value="${food.defG||food.g||1}">
+  <label>${food.g?'Amount (grams)':'Number of '+esc(food.label||'servings')}</label><input id="qv" type="number" inputmode="decimal" step="any" value="${(lastUse()[food.id]||{}).amt>0?lastUse()[food.id].amt:(food.defG||food.g||1)}">
   <div id="qp" class="card" style="margin-top:10px"></div><button class="pri" id="qok" style="width:100%">Add</button>`);
   const inp=$('#qv',ov),upd=()=>{const s=snap(food,num(inp.value));$('#qp',ov).innerHTML=`<b>${r0(s.k)} kcal</b> &nbsp; <span style="color:${COL.p}">P ${r1(s.p)}</span> &nbsp; <span style="color:${COL.c}">C ${r1(s.c)}</span> &nbsp; <span style="color:${COL.f}">F ${r1(s.f)}</span>`};
   inp.oninput=upd;upd();setTimeout(()=>{inp.focus();inp.select()},50);
@@ -149,14 +161,14 @@ function qtySheet(food,cb){
 
 /* ---------- food picker ---------- */
 function pickFood(cb,opts={}){
-  let tab='fav',q='',mc='';
+  let tab='recent',q='',mc='';
   const ov=sheet(`<h3>Add food</h3>
   <input id="pq" placeholder="Search foods" autocomplete="off">
   <div class="chips" id="pt"></div>
   <div id="pl"></div>
   <div class="g2" style="margin-top:10px"><button id="psc">📷 Scan barcode</button><button id="plb">🏷 Scan label</button></div><button id="pqa" style="width:100%;margin-top:8px">⚡ Quick add</button>
   <button id="pnf" style="width:100%;margin-top:8px">+ Create new food</button>`);
-  const tabs=[['fav','★ Favourites'],...S.cats.food.map(c=>['c:'+c.id,c.name]),['recent','Recent'],['all','All foods']];if(opts.meal)tabs.push(['meal','Meals']);
+  const tabs=[['recent','🕘 Recent'],['fav','★ Favourites'],...S.cats.food.map(c=>['c:'+c.id,c.name]),['all','All foods']];if(opts.meal)tabs.push(['meal','Meals']);
   const draw=()=>{
     $('#pt',ov).innerHTML=tabs.map(([k,l])=>`<button class="chip ${tab===k?'on':''}" data-t="${k}">${l}</button>`).join('');
     ov.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;draw()});
@@ -169,10 +181,11 @@ function pickFood(cb,opts={}){
       if(q)list=list.filter(f=>toks.every(t=>(f.name+' '+(f.brand||'')).toLowerCase().includes(t)));
       else if(tab.startsWith('c:'))list=list.filter(f=>(f.cats||[]).includes(tab.slice(2)));
       else if(tab==='fav')list=list.filter(f=>f.fav);
-      else if(tab==='recent')list=S.recent.map(id=>S.foods.find(f=>f.id===id)).filter(Boolean);
+      else if(tab==='recent')list=recentFoods();
       const total=list.length;list=list.slice(0,60);
-      html=list.map(f=>`<div class="row" data-f="${f.id}"><div>${esc(f.name)}<div class="muted">${esc(f.brand||'')} ${f.g?'per '+f.g+' g':'per '+esc(f.label||'serving')} · P${r0(f.p)} C${r0(f.c)} F${r0(f.f)}</div></div><b>${r0(f.k)}</b></div>`).join('');
-      if(!html)html=`<div class="muted">${q?'No match. Try All foods, scan, or create it.':tab==='fav'?'No favourites yet. Star foods in the Foods tab.':'Nothing here yet.'}</div>`;
+      const lu=tab==='recent'&&!q?lastUse():{};
+      html=list.map(f=>`<div class="row" data-f="${f.id}"><div>${esc(f.name)}<div class="muted">${esc(f.brand||'')} ${f.g?'per '+f.g+' g':'per '+esc(f.label||'serving')} · P${r0(f.p)} C${r0(f.c)} F${r0(f.f)}${lu[f.id]?' · last: '+esc(lu[f.id].desc||''):''}</div></div><b>${r0(f.k)}</b></div>`).join('');
+      if(!html)html=`<div class="muted">${q?'No match. Try All foods, scan, or create it.':tab==='fav'?'No favourites yet. Star foods in the Foods tab.':tab==='recent'?'Foods you add will show up here.':'Nothing here yet.'}</div>`;
       if(total>60)html+=`<div class="muted">Showing 60 of ${total}. Keep typing to narrow.</div>`;
     }
     $('#pl',ov).innerHTML=html;
@@ -185,7 +198,7 @@ function pickFood(cb,opts={}){
   $('#plb',ov).onclick=()=>labelFlow(f=>qtySheet(f,cb));
   $('#pnf',ov).onclick=()=>foodForm({},f=>qtySheet(f,cb));
   $('#pqa',ov).onclick=()=>quickAdd(cb);
-  if(!S.foods.some(f=>f.fav)&&S.recent.length)tab='recent';
+  if(!recentFoods().length)tab=S.foods.some(f=>f.fav)?'fav':'all';
   if(!S.foods.length)tab='all';
   draw();
 }
@@ -573,14 +586,16 @@ function editEntry(id,d){
 /* ---------- FOODS ---------- */
 function foodListHTML(){
   const toks=foodQ.toLowerCase().split(/\s+/).filter(Boolean);
-  let l=S.foods.filter(f=>(!foodCat||(foodCat==='fav'?f.fav:(f.cats||[]).includes(foodCat)))&&toks.every(t=>(f.name+' '+(f.brand||'')).toLowerCase().includes(t)));
+  const rid=foodCat==='recent'?recentFoods().map(f=>f.id):null;
+  let l=S.foods.filter(f=>(!foodCat||(foodCat==='fav'?f.fav:foodCat==='recent'?rid.includes(f.id):(f.cats||[]).includes(foodCat)))&&toks.every(t=>(f.name+' '+(f.brand||'')).toLowerCase().includes(t)));
+  if(rid)l.sort((a,b)=>rid.indexOf(a.id)-rid.indexOf(b.id));
   const total=l.length;l=l.slice(0,80);
   if(!S.foods.length)return '<div class="muted card">No foods yet. Use ⚙ Settings → Import foods from Excel, scan a barcode, or tap + New.</div>';
   return `<div class="card">${l.map(f=>`<div class="row" onclick="foodForm(S.foods.find(x=>x.id==='${f.id}'),()=>render())"><div style="flex:1">${esc(f.name)}<div class="muted">${esc(f.brand||'')} ${f.g?'per '+f.g+' g':'per '+esc(f.label||'serving')} · P${r0(f.p)} C${r0(f.c)} F${r0(f.f)}</div></div><b>${r0(f.k)}</b><button class="star ${f.fav?'on':''}" onclick="event.stopPropagation();toggleFav('${f.id}')">${f.fav?'★':'☆'}</button></div>`).join('')||'<div class="muted">No matches</div>'}</div>${total>80?`<div class="muted">Showing 80 of ${total}. Search to narrow.</div>`:''}`;
 }
 function vFoods(){return `<h2>Foods <span class="muted">${S.foods.length}</span></h2>
   <div class="bar"><input id="fq" placeholder="Search" value="${esc(foodQ)}" oninput="foodQ=this.value;$('#fl').innerHTML=foodListHTML()"><button class="sm" onclick="foodForm({g:100},()=>render())">+ New</button><button class="sm" onclick="scanFlow(f=>foodForm(f,()=>render()))">📷</button><button class="sm" onclick="labelFlow(()=>render())">🏷</button></div>
-  <div class="chips"><button class="chip ${foodCat?'':'on'}" onclick="foodCat='';render()">All</button><button class="chip ${foodCat==='fav'?'on':''}" onclick="setFoodCat('fav')">★ Favourites</button>${catChips('food',foodCat,'setFoodCat')}<button class="chip" onclick="manageCats('food')">⚙ Categories</button></div><div id="fl">${foodListHTML()}</div>`}
+  <div class="chips"><button class="chip ${foodCat?'':'on'}" onclick="foodCat='';render()">All</button><button class="chip ${foodCat==='recent'?'on':''}" onclick="setFoodCat('recent')">🕘 Recent</button><button class="chip ${foodCat==='fav'?'on':''}" onclick="setFoodCat('fav')">★ Favourites</button>${catChips('food',foodCat,'setFoodCat')}<button class="chip" onclick="manageCats('food')">⚙ Categories</button></div><div id="fl">${foodListHTML()}</div>`}
 function toggleFav(id){const f=S.foods.find(x=>x.id===id);f.fav=!f.fav;save();$('#fl').innerHTML=foodListHTML()}
 
 /* ---------- MEALS ---------- */
