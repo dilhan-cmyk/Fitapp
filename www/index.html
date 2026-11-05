@@ -124,10 +124,27 @@ function sheet(html){
   const ov=document.createElement('div');ov.className='ov';
   ov.innerHTML=`<div class="shx">${html}</div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)closeSheet(ov)});
-  document.body.appendChild(ov);SH.push(ov);
+  document.body.appendChild(ov);SH.push(ov);syncHist();
   ov.body=ov.firstChild;return ov;
 }
-function closeSheet(ov){if(ov._cleanup)ov._cleanup();ov.remove();const i=SH.indexOf(ov);if(i>-1)SH.splice(i,1)}
+function closeSheet(ov){if(ov._cleanup)ov._cleanup();ov.remove();const i=SH.indexOf(ov);if(i>-1)SH.splice(i,1);syncHist()}
+// Phone back button: one history entry exists while any popup is open, so Back closes the top popup instead of leaving the app.
+let _hOpen=false,_hQuiet=0,_hT=0;
+function syncHist(){
+  clearTimeout(_hT);
+  _hT=setTimeout(()=>{
+    const want=SH.length>0;
+    try{
+      if(want&&!_hOpen){history.pushState({fuelSheet:1},'');_hOpen=true}
+      else if(!want&&_hOpen){_hOpen=false;_hQuiet++;history.back()}
+    }catch(e){}
+  },0);
+}
+window.addEventListener('popstate',()=>{
+  if(_hQuiet>0){_hQuiet--;return}
+  _hOpen=false;
+  if(SH.length)closeSheet(SH[SH.length-1]);
+});
 function closeAll(){while(SH.length)closeSheet(SH[SH.length-1])}
 
 /* ---------- food snapshots ---------- */
@@ -613,17 +630,21 @@ function saveSlotMeal(sl){
 function editEntry(id,d){
   d=d||date;
   const e=(S.log[d]||[]).find(x=>x.id===id);if(!e)return;
-  const fd0=S.foods.find(x=>x.id===e.foodId),isFav=()=>{const x=S.foods.find(y=>y.id===e.foodId);return !!(x&&x.fav)};
+  const amt0=parseFloat(e.desc)||0,unit0=String(e.desc||'').replace(/^[\d.]+\s*/,'')||'g',base0={k:e.k,p:e.p,c:e.c,f:e.f};
+  const isFav=()=>{const x=S.foods.find(y=>y.id===e.foodId);return !!(x&&x.fav)};
   const ov=sheet(`<h3 style="display:flex;align-items:center">Edit entry<span class="sp"></span><button class="star ${isFav()?'on':''}" id="efv" style="font-size:26px">${isFav()?'★':'☆'}</button></h3><label>Name</label><input id="en" value="${esc(e.name)}">
+  ${amt0>0?`<label>Amount ${esc(unit0)}</label><input id="ea" type="number" inputmode="decimal" step="any" value="${amt0}"><div class="muted">Changing this rescales the calories and macros below.</div>`:''}
   <div class="g4"><div><label>kcal</label><input id="ek" type="number" step="any" value="${r1(e.k)}"></div><div><label>Protein</label><input id="ep" type="number" step="any" value="${r1(e.p)}"></div><div><label>Carbs</label><input id="ec" type="number" step="any" value="${r1(e.c)}"></div><div><label>Fat</label><input id="ef" type="number" step="any" value="${r1(e.f)}"></div></div>
   <div class="g2"><div><label>Meal</label><select id="es">${SLOTS.map(s=>`<option ${s===e.slot?'selected':''}>${s}</option>`).join('')}</select></div><div><label>Status</label><select id="est"><option value="eaten" ${e.planned?'':'selected'}>Eaten</option><option value="planned" ${e.planned?'selected':''}>Planned</option></select></div></div>
   <div class="g2" style="margin-top:14px"><button class="dng" id="ed">Delete</button><button class="pri" id="eo">Save</button></div>`);
+  if(amt0>0)$('#ea',ov).oninput=()=>{const v=num($('#ea',ov).value),m=v/amt0;[['k','ek'],['p','ep'],['c','ec'],['f','ef']].forEach(([a,b])=>$('#'+b,ov).value=r1(base0[a]*m))};
   $('#efv',ov).onclick=()=>{
     let x=S.foods.find(y=>y.id===e.foodId);
     if(!x){x={id:uid(),name:e.name,brand:'',g:null,defG:1,label:e.desc||'serving',k:e.k,p:e.p,c:e.c,f:e.f,cats:[],fav:false};S.foods.push(x);e.foodId=x.id}
     x.fav=!x.fav;save();const b=$('#efv',ov);b.textContent=x.fav?'★':'☆';b.classList.toggle('on',x.fav);toast(x.fav?'Added to favourites':'Removed from favourites');
   };
-  $('#eo',ov).onclick=()=>{Object.assign(e,{name:$('#en',ov).value,k:num($('#ek',ov).value),p:num($('#ep',ov).value),c:num($('#ec',ov).value),f:num($('#ef',ov).value),slot:$('#es',ov).value});if($('#est',ov).value==='planned')e.planned=true;else delete e.planned;save();closeSheet(ov);render()};
+  $('#eo',ov).onclick=()=>{if(amt0>0){const v=num($('#ea',ov).value);if(v>0&&v!==amt0)e.desc=String(e.desc).replace(/^[\d.]+/,String(r1(v)))}
+    Object.assign(e,{name:$('#en',ov).value,k:num($('#ek',ov).value),p:num($('#ep',ov).value),c:num($('#ec',ov).value),f:num($('#ef',ov).value),slot:$('#es',ov).value});if($('#est',ov).value==='planned')e.planned=true;else delete e.planned;save();closeSheet(ov);render()};
   $('#ed',ov).onclick=()=>{S.log[d]=S.log[d].filter(x=>x.id!==id);save();closeSheet(ov);render()};
 }
 
